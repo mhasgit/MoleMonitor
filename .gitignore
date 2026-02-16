@@ -416,3 +416,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# MoleMonitor persistence
+data/uploads/
+data/*.db

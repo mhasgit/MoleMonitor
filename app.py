@@ -3,12 +3,14 @@
 import streamlit as st
 
 from src import config
+from src.db import database
 from src.pages import about, forgot_password, history, home, instructions, login, register
 from src.state import session_store
 
 
 def main() -> None:
     st.set_page_config(page_title=config.APP_TITLE, page_icon=config.PAGE_ICON)
+    database.init_db()
     session_store.init_history()
 
     page = st.sidebar.radio("Navigate", config.NAV_PAGES, key="nav")

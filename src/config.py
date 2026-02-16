@@ -15,3 +15,8 @@ NAV_PAGES = [
 ]
 
 ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "webp", "bmp")
+
+# Persistence (relative to project root)
+DATA_DIR = "data"
+UPLOADS_DIR = "data/uploads"
+DB_PATH = "data/molemonitor.db"

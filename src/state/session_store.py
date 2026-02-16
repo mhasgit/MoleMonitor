@@ -1,25 +1,31 @@
-"""In-app image pair history using Streamlit session_state. No database."""
+"""Image pair history: persisted in SQLite; images on filesystem. init_history ensures DB exists."""
 
-from datetime import datetime
 from typing import Any
 
-import streamlit as st
-
-
-HISTORY_KEY = "image_history"
+from src.db import database
+from src.ui import components
 
 
 def init_history() -> None:
-    """Ensure session_state has the history list."""
-    if HISTORY_KEY not in st.session_state:
-        st.session_state[HISTORY_KEY] = []
+    """Ensure DB and data dirs exist."""
+    database.init_db()
 
 
 def get_history() -> list[dict[str, Any]]:
-    """Return history list, newest first. Call init_history() before first use."""
+    """Return pairs from DB, newest first. Each dict has pair_name, timestamp, filename_a, filename_b, path_a, path_b (load images via load_image_from_path)."""
     init_history()
-    raw = st.session_state[HISTORY_KEY]
-    return list(reversed(raw))
+    rows = database.get_pairs()
+    return [
+        {
+            "pair_name": r["pair_name"],
+            "timestamp": r["created_at"],
+            "filename_a": r["filename_a"] or "",
+            "filename_b": r["filename_b"] or "",
+            "path_a": r["path_a"],
+            "path_b": r["path_b"],
+        }
+        for r in rows
+    ]
 
 
 def append_pair(
@@ -29,22 +35,24 @@ def append_pair(
     img_a: Any,
     img_b: Any,
 ) -> None:
-    """Append one pair. Uses 'Pair N' if label is empty."""
+    """Save both images to data/uploads/, then insert a row in SQLite. Uses 'Pair N' if label empty."""
     init_history()
-    history = st.session_state[HISTORY_KEY]
-    n = len(history) + 1
+    path_a = components.save_image_to_uploads(img_a, "a")
+    path_b = components.save_image_to_uploads(img_b, "b")
+    if not path_a or not path_b:
+        raise RuntimeError("Failed to save one or both images to disk.")
+    rows = database.get_pairs()
+    n = len(rows) + 1
     pair_name = (label or "").strip() or f"Pair {n}"
-    record = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "pair_name": pair_name,
-        "filename_a": name_a or "",
-        "filename_b": name_b or "",
-        "image_a": img_a,
-        "image_b": img_b,
-    }
-    history.append(record)
+    database.insert_pair(
+        pair_name=pair_name,
+        filename_a=name_a or "",
+        filename_b=name_b or "",
+        path_a=path_a,
+        path_b=path_b,
+    )
 
 
 def clear_history() -> None:
-    """Clear all saved pairs."""
-    st.session_state[HISTORY_KEY] = []
+    """Delete all pairs from DB. Image files in data/uploads/ are left on disk."""
+    database.clear_pairs()

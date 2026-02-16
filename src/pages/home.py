@@ -59,15 +59,18 @@ def render() -> None:
     both_ok = img_a is not None and img_b is not None
     if st.button("Save pair to history", disabled=not both_ok, key="save_pair"):
         if both_ok:
-            session_store.append_pair(
-                label=custom_label or "",
-                name_a=file_a.name if file_a else "",
-                name_b=file_b.name if file_b else "",
-                img_a=img_a,
-                img_b=img_b,
-            )
-            st.success("Saved.")
-            st.rerun()
+            try:
+                session_store.append_pair(
+                    label=custom_label or "",
+                    name_a=file_a.name if file_a else "",
+                    name_b=file_b.name if file_b else "",
+                    img_a=img_a,
+                    img_b=img_b,
+                )
+                st.success("Saved.")
+                st.rerun()
+            except RuntimeError as e:
+                st.error(str(e))
 
     history = session_store.get_history()
     st.caption(f"Saved pairs: **{len(history)}**")
