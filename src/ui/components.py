@@ -1,6 +1,7 @@
 """Shared UI helpers and safe image loading."""
 
 import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -8,6 +9,21 @@ import numpy as np
 from PIL import Image
 
 from src import config
+
+
+def format_pair_timestamp(iso_timestamp: str) -> str:
+    """
+    Format ISO created_at (e.g. with Z suffix) for display.
+    Returns a string like "Feb 23, 2025, 2:30 PM" or the original / "Unknown date" on parse failure.
+    """
+    if not iso_timestamp:
+        return "Unknown date"
+    try:
+        s = iso_timestamp.rstrip("Z").replace("Z", "")
+        dt = datetime.fromisoformat(s)
+        return dt.strftime("%b %d, %Y, %I:%M %p")
+    except (ValueError, TypeError):
+        return iso_timestamp if iso_timestamp else "Unknown date"
 
 
 def _project_root() -> Path:

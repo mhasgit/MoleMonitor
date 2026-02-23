@@ -3,15 +3,15 @@
 APP_TITLE = "MoleMonitor"
 PAGE_ICON = "🕵️"
 
-# Sidebar navigation labels
+# Sidebar navigation labels (main flow first, then account)
 NAV_PAGES = [
     "Home",
+    "Image History",
+    "Instructions",
+    "About",
     "Register",
     "Login",
     "Forgot Password",
-    "Instructions",
-    "Image History",
-    "About",
 ]
 
 ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "webp", "bmp")

@@ -12,11 +12,12 @@ def init_history() -> None:
 
 
 def get_history() -> list[dict[str, Any]]:
-    """Return pairs from DB, newest first. Each dict has pair_name, timestamp, filename_a, filename_b, path_a, path_b (load images via load_image_from_path)."""
+    """Return pairs from DB, newest first. Each dict has id, pair_name, timestamp, filename_a, filename_b, path_a, path_b (load images via load_image_from_path)."""
     init_history()
     rows = database.get_pairs()
     return [
         {
+            "id": r["id"],
             "pair_name": r["pair_name"],
             "timestamp": r["created_at"],
             "filename_a": r["filename_a"] or "",
@@ -26,6 +27,12 @@ def get_history() -> list[dict[str, Any]]:
         }
         for r in rows
     ]
+
+
+def delete_pair(pair_id: int) -> None:
+    """Delete a single pair by id. Image files are left on disk."""
+    init_history()
+    database.delete_pair(pair_id)
 
 
 def append_pair(

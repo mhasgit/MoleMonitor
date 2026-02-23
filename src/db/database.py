@@ -99,6 +99,17 @@ def get_pairs() -> list[dict[str, Any]]:
         conn.close()
 
 
+def delete_pair(pair_id: int) -> None:
+    """Delete a single pair by id. Does not delete image files."""
+    init_db()
+    conn = sqlite3.connect(str(_db_path()))
+    try:
+        conn.execute("DELETE FROM pairs WHERE id = ?", (pair_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def clear_pairs() -> None:
     """Delete all pairs from DB. Does not delete image files."""
     init_db()
