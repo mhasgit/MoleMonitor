@@ -88,7 +88,7 @@ def main() -> None:
         history.render()
     elif page == "About":
         about.render()
-    elif page == "dashboard":
+    elif page == "Dashboard":
         register.render()
     else:
         home.render()
