@@ -4,7 +4,7 @@ import streamlit as st
 
 from src import config
 from src.db import database
-from src.pages import about, forgot_password, history, home, instructions, login, register, dashboard
+from src.pages import about, dashboard, forgot_password, history, home, instructions, login, register
 from src.state import session_store
 
 
@@ -88,6 +88,8 @@ def main() -> None:
         history.render()
     elif page == "About":
         about.render()
+    elif page == "dashboard":
+        register.render()
     else:
         home.render()
 
