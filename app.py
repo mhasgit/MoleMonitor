@@ -89,7 +89,7 @@ def main() -> None:
     elif page == "About":
         about.render()
     elif page == "Dashboard":
-        register.render()
+        dashboard.render()
     else:
         home.render()
 
