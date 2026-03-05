@@ -6,6 +6,7 @@ PAGE_ICON = "🕵️"
 # Sidebar navigation labels (main flow first, then account)
 NAV_PAGES = [
     "Home",
+    "Dashboard",
     "Image History",
     "Instructions",
     "About",
