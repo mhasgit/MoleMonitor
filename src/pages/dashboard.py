@@ -5,7 +5,7 @@ from src.state import session_store
 from src.ui import components
 
 def render() -> None:
-    st.title("Dahboard")
+    st.title("Dashboard")
     st.write("Welcome to the MoleMonitor Dashboard")
     col1, col2, col3 = st.columns(3)
 
