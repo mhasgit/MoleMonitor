@@ -4,7 +4,7 @@ import streamlit as st
 
 from src import config
 from src.db import database
-from src.pages import about, forgot_password, history, home, instructions, login, register
+from src.pages import about, forgot_password, history, home, instructions, login, register, dashboard
 from src.state import session_store
 
 
