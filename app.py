@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from src.styles.load_css import load_css
 from src import config
 from src.db import database
 from src.pages import about, dashboard, forgot_password, history, home, instructions, login, register
@@ -10,6 +11,8 @@ from src.state import session_store
 
 def main() -> None:
     st.set_page_config(page_title=config.APP_TITLE, page_icon=config.PAGE_ICON)
+
+    load_css()
     database.init_db()
     session_store.init_history()
 
