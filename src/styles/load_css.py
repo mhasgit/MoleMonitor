@@ -1,13 +1,13 @@
-"""import streamlit as st
+import streamlit as st
 from pathlib import Path
 
 def load_css():
     css_path = Path("src/styles/globalstyle.css")
 
     with open(css_path) as f:
-        st.markdown(f"<style>{f.read()}</style", unsafe_allow_html= True)"""
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html= True)
 
-import streamlit as st
+"""import streamlit as st
 from pathlib import Path
 
 def load_css():
@@ -17,4 +17,4 @@ def load_css():
         with open(css_path) as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     else:
-        st.error(f"CSS file not found: {css_path}")
+        st.error(f"CSS file not found: {css_path}")"""
