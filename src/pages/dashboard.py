@@ -1,4 +1,6 @@
 import streamlit as st
+from src.styles.load_css import load_css
+load_css()
 
 from src import config
 from src.state import session_store
