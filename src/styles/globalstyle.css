@@ -33,18 +33,18 @@ h1{
 
 /* App background */
 .stApp {
-    background-color: #f4f7fb;
+    background-color: #87CEEB;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Main content area */
 [data-testid="stAppViewContainer"] {
-    background-color: #f4f7fb;
+    background-color: #87CEEB;
 }
 
 /* Sidebar styling */
 [data-testid="stSidebar"] {
-    background-color: #ffffff;
+    background-color: #87CEEB;
     border-right: 1px solid #e6e9ef;
 }
 
