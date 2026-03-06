@@ -1,5 +1,8 @@
 import streamlit as st
+from pathlib import Path
 
 def load_css():
-    with open("src/styles/globalstyle.css") as f:
+    css_path = Path("src/styles/globalstyle.css")
+
+    with open(css_path) as f:
         st.markdown(f"<style>{f.read()}</style", unsafe_allow_html= True)
