@@ -27,7 +27,7 @@ def render():
         )
         if st.button("Log in"):
             st.success("Login Attempted")
-        st.markdown("p class='forgot'>Forgot Password?</p>", unsafe_allow_html=True)
+        st.markdown("[Forgot Password?](#)")
         st.markdown("/div", unsafe_allow_html=True)
         
         
