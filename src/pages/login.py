@@ -1,13 +1,14 @@
 """Login page. To be implemented."""
 
 import streamlit as st
+st.set_page_config(layout="wide")
 
 
 def render():
     col1, col2 = st.columns([1,1])
     
     with col1:
-        st.markdown('<div class="login-left">', unsafe_allow_html=True)
+        #st.markdown('<div class="login-left">', unsafe_allow_html=True)
         st.image("src/images/placeholder.jpg", use_container_width=True)
 
         st.markdown(
@@ -15,10 +16,10 @@ def render():
         )
         st.markdown("<p class='hero-text'>Track changes to your skin moles over time.</p>", unsafe_allow_html=True
                     )
-        st.markdown("</div>", unsafe_allow_html=True)
+        #st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="login-right">', unsafe_allow_html=True)
+        #st.markdown('<div class="login-right">', unsafe_allow_html=True)
         st.markdown("<h3>Log in</h3>", unsafe_allow_html=True)
         email = st.text_input("Email Adress", placeholder="user@example.com")
         password = st.text_input(
@@ -29,7 +30,7 @@ def render():
         if st.button("Log in"):
             st.success("Login Attempted")
         st.markdown("[Forgot Password?](#)")
-        st.markdown("/div", unsafe_allow_html=True)
+        #st.markdown("/div", unsafe_allow_html=True)
         
         
         
