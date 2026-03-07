@@ -52,13 +52,13 @@ h1{
 h1 {
     font-size: 32px;
     font-weight: 700;
-    color: #ffffff;
+    color: #454545;
     margin-bottom: 20px;
 }
 
 /* Section titles */
 h2, h3 {
-    color: #ffffff;
+    color: #545252;
     font-weight: 600;
 }
 
@@ -83,7 +83,7 @@ p {
 .card-title {
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
+    color: #242323;
 }
 
 /* Card values */
@@ -118,8 +118,8 @@ p {
 
 /* Metrics styling */
 [data-testid="stMetric"] {
-    background-color: white;
+    background-color: rgb(0, 0, 0);
     padding: 15px;
     border-radius: 10px;
-    border: 1px solid #e6e9ef;
+    border: 1px solid #000000;
 }
