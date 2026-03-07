@@ -17,6 +17,7 @@ def render():
                     )
         st.markdown("</div>", unsafe_allow_html=True)
 
+    with col2:
         st.markdown('<div class="login-right">', unsafe_allow_html=True)
         st.markdown("<h3>Log in</h3>", unsafe_allow_html=True)
         email = st.text_input("Email Adress", placeholder="user@example.com")
