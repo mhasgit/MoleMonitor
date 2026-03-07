@@ -22,3 +22,4 @@ def render():
         st.markdown("Create an account")
 
         st.markdown('</div>', unsafe_allow_html=True)
+        st.image("images/placeholder.jpg", use_container_width=True)
