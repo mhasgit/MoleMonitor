@@ -157,11 +157,3 @@ p {
     margin-top:15px;
     color:#aaa;
 }
-.block-container {
-    padding: 0rem;
-}
-
-
-[data-testid="stAppViewContainer"] > .main {
-    padding-top: 0rem;
-}
