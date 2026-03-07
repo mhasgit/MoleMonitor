@@ -123,3 +123,37 @@ p {
     border-radius: 10px;
     border: 1px solid #000000;
 }
+
+/* LOGIN PAGE */
+.login-left{
+    height:100vh;
+    background: #e8e8e8;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    padding:40px;
+}
+.login-right{
+    height:100vh;
+    background:#111;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:80px;
+}
+.hero-title{
+    font-size:32px;
+    font-weight:700px;
+    margin-top:30px;
+}
+.hero-text{
+    color:#667;
+    font-size:16px;
+}
+.forgot{
+    margin-top:15px;
+    color:#aaa;
+}
