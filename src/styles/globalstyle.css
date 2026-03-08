@@ -44,7 +44,7 @@ h1{
 
 /* Sidebar style */
 [data-testid="stSidebar"] {
-    background-color: #000080;
+    background-color: #ffffff;
     border-right: 1px solid #000080;
 }
 
