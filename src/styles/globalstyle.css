@@ -42,29 +42,29 @@ h1{
     background-color: #000080;
 }
 
-/* Sidebar styling */
+/* Sidebar style */
 [data-testid="stSidebar"] {
     background-color: #000080;
-    border-right: 1px solid #e6e9ef;
+    border-right: 1px solid #000080;
 }
 
 /* Page title */
 h1 {
     font-size: 32px;
     font-weight: 700;
-    color: #454545;
+    color: #ffffff;
     margin-bottom: 20px;
 }
 
 /* Section titles */
 h2, h3 {
-    color: #545252;
+    color: #ffffff;
     font-weight: 600;
 }
 
 /* General text */
 p {
-    color: #f0f0f0;
+    color: #ffffff;
 }
 
 /* ================================
@@ -72,7 +72,7 @@ p {
 ================================ */
 
 .card {
-    background-color: rgb(255, 255, 255);
+    background-color: rgb(7, 70, 194);
     border-radius: 12px;
     padding: 30px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
@@ -83,7 +83,7 @@ p {
 .card-title {
     font-size: 14px;
     font-weight: 600;
-    color: #242323;
+    color: #0a38ce;
 }
 
 /* Card values */
@@ -118,10 +118,10 @@ p {
 
 /* Metrics styling */
 [data-testid="stMetric"] {
-    background-color: rgb(0, 0, 0);
+    background-color: rgb(255, 255, 255);
     padding: 15px;
     border-radius: 10px;
-    border: 1px solid #000000;
+    border: 1px solid #1c02c0;
 }
 
 /* LOGIN PAGE */
