@@ -45,7 +45,7 @@ h1{
 /* Sidebar style */
 [data-testid="stSidebar"] {
     background-color: #000080;
-    border-right: 1px solid #000080;
+    border-right: 1px solid #ffffff;
 }
 
 /* Page title */
@@ -150,7 +150,7 @@ p {
 }
 .hero-text{
     font-size:16px;
-    color:#555;
+    color:#ffffff;
 }
 .stTextInput input{
     border-radius:25px;
