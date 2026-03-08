@@ -44,7 +44,7 @@ h1{
 
 /* Sidebar style */
 [data-testid="stSidebar"] {
-    background-color: #ffffff;
+    background-color: #000080;
     border-right: 1px solid #000080;
 }
 
@@ -118,7 +118,7 @@ p {
 
 /* Metrics styling */
 [data-testid="stMetric"] {
-    background-color: rgb(255, 255, 255);
+    background-color: rgb(5, 59, 184);
     padding: 15px;
     border-radius: 10px;
     border: 1px solid #1c02c0;
