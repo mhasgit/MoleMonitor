@@ -1,5 +1,7 @@
 """Shared UI helpers and safe image loading."""
 
+import base64
+import io
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -80,3 +82,20 @@ def load_image_from_path(relative_path: str) -> Optional[np.ndarray]:
         return np.array(img, dtype=np.uint8)
     except Exception:
         return None
+
+
+def image_to_data_url(img_array: Optional[np.ndarray]) -> str:
+    """
+    Convert RGB uint8 numpy image to a data URL for use in HTML img src.
+    Returns empty string on failure.
+    """
+    if img_array is None:
+        return ""
+    try:
+        pil = Image.fromarray(img_array)
+        buf = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=85)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return f"data:image/jpeg;base64,{b64}"
+    except Exception:
+        return ""

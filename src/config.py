@@ -3,16 +3,20 @@
 APP_TITLE = "MoleMonitor"
 PAGE_ICON = "🕵️"
 
-# Sidebar navigation labels (main flow first, then account)
-NAV_PAGES = [
+# Sidebar navigation (main app only; auth pages are not in sidebar)
+SIDEBAR_PAGES = [
+    "Dashboard",
     "Home",
     "Image History",
     "Instructions",
     "About",
-    "Register",
-    "Login",
-    "Forgot Password",
 ]
+
+# Auth sub-pages when unauthenticated (Login, Register, Forgot)
+AUTH_PAGES = ["Login", "Register", "Forgot Password"]
+
+# Legacy: full nav list for any backward compatibility
+NAV_PAGES = SIDEBAR_PAGES + AUTH_PAGES
 
 ALLOWED_EXTENSIONS = ("jpg", "jpeg", "png", "webp", "bmp")
 
