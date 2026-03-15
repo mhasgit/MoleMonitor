@@ -1,6 +1,7 @@
 """Login page: split layout, mock login (any credentials let user in)."""
 
 import streamlit as st
+import streamlit_shadcn_ui as ui
 
 from src.ui import auth_layout
 
@@ -29,7 +30,7 @@ def render() -> None:
             key="login_password",
         )
         st.markdown("")
-        if st.button("Log in", key="login_btn", type="primary", use_container_width=True):
+        if ui.button("Log in", key="login_btn", variant="default"):
             if (email or "").strip() and (password or "").strip():
                 st.session_state["authenticated"] = True
                 st.session_state["user_name"] = (email or "").strip()
@@ -38,10 +39,10 @@ def render() -> None:
             else:
                 st.warning("Please enter email and password.")
         st.markdown("")
-        if st.button("Forgot your password?", key="login_forgot_link"):
+        if ui.button("Forgot your password?", key="login_forgot_link", variant="outline"):
             st.session_state["auth_page"] = "forgot"
             st.rerun()
         st.markdown("")
-        if st.button("Don't have an account? Register", key="login_register_link"):
+        if ui.button("Don't have an account? Register", key="login_register_link", variant="outline"):
             st.session_state["auth_page"] = "register"
             st.rerun()

@@ -1,6 +1,7 @@
 """Home page: upload Image A (older) and Image B (newer), preview, save to history. Can also select from already uploaded images."""
 
 import streamlit as st
+import streamlit_shadcn_ui as ui
 
 from src import config
 from src.state import session_store
@@ -133,7 +134,12 @@ def render() -> None:
     )
     st.caption("Give this comparison a name, or leave blank to auto-generate.")
     both_ok = img_a is not None and img_b is not None
-    if st.button("Save pair to history", disabled=not both_ok, key="save_pair", type="primary" if both_ok else "secondary", use_container_width=True):
+    if ui.button(
+        "Save pair to history",
+        key="save_pair",
+        variant="default" if both_ok else "secondary",
+        disabled=not both_ok,
+    ):
         if both_ok:
             try:
                 session_store.append_pair(

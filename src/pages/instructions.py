@@ -1,6 +1,7 @@
 """Instructions page: photo guidelines, tip cards, safety disclaimer, CTA to upload."""
 
 import streamlit as st
+import streamlit_shadcn_ui as ui
 
 from src.ui import theme
 
@@ -45,7 +46,7 @@ def render() -> None:
     tip_cards_html = [
         theme.instruction_tip_card_html(
             title,
-            f"<p style='margin:0; font-size:1.05rem; line-height:1.6; color: {theme.TEXT_PRIMARY};'>{body}</p>",
+            f"<p style='margin:0; font-size:1.05rem; line-height:1.6;'>{body}</p>",
             icon=icon,
             variant="default" if i % 2 == 0 else "alt",
         )
@@ -70,6 +71,6 @@ def render() -> None:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(theme.cta_card_html("Ready to add your first comparison?"), unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Continue to Upload Photo", type="primary", use_container_width=True):
+    if ui.button("Continue to Upload Photo", key="instructions_cta", variant="default"):
         st.session_state["nav_page"] = "Home"
         st.rerun()

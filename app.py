@@ -3,6 +3,15 @@
 import streamlit as st
 
 from src import config
+
+# Must be first Streamlit command (before any other st.* or imports that run st code)
+st.set_page_config(
+    page_title=config.APP_TITLE,
+    page_icon=config.PAGE_ICON,
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 from src.db import database
 from src.ui import theme
 from src.pages import (
@@ -36,12 +45,6 @@ def _hide_sidebar() -> None:
 
 
 def main() -> None:
-    st.set_page_config(
-        page_title=config.APP_TITLE,
-        page_icon=config.PAGE_ICON,
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
     database.init_db()
     session_store.init_history()
 

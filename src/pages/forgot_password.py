@@ -1,6 +1,7 @@
 """Forgot password: phone step then reset password (mock)."""
 
 import streamlit as st
+import streamlit_shadcn_ui as ui
 
 from src.ui import auth_layout
 
@@ -30,7 +31,7 @@ def render() -> None:
                 key="forgot_phone",
             )
             st.markdown("")
-            if st.button("Continue", key="forgot_continue", type="primary", use_container_width=True):
+            if ui.button("Continue", key="forgot_continue", variant="default"):
                 if (phone or "").strip():
                     st.session_state["forgot_step"] = "reset"
                     st.session_state["forgot_phone_entered"] = True
@@ -52,7 +53,7 @@ def render() -> None:
                 key="forgot_confirm_pass",
             )
             st.markdown("")
-            if st.button("Reset password", key="forgot_reset_btn", type="primary", use_container_width=True):
+            if ui.button("Reset password", key="forgot_reset_btn", variant="default"):
                 if new_password and new_password == confirm_password:
                     st.success("Password reset (mock). You can log in now.")
                     st.session_state["forgot_step"] = "phone"
@@ -61,7 +62,7 @@ def render() -> None:
                 else:
                     st.warning("Passwords must match and not be empty.")
             st.markdown("")
-            if st.button("Back to Log in", key="forgot_back"):
+            if ui.button("Back to Log in", key="forgot_back", variant="outline"):
                 st.session_state["forgot_step"] = "phone"
                 st.session_state["auth_page"] = "login"
                 st.rerun()

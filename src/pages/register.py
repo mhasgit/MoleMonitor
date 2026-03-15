@@ -1,6 +1,7 @@
 """Registration page: split layout, Name/Email/Password/Phone; mock only."""
 
 import streamlit as st
+import streamlit_shadcn_ui as ui
 
 from src.ui import auth_layout
 
@@ -34,7 +35,7 @@ def render() -> None:
             key="reg_phone",
         )
         st.markdown("")
-        if st.button("Register", key="reg_btn", type="primary", use_container_width=True):
+        if ui.button("Register", key="reg_btn", variant="default"):
             if (email or "").strip() and (password or "").strip():
                 st.session_state["authenticated"] = True
                 st.session_state["user_name"] = (name or email or "").strip()
@@ -43,6 +44,6 @@ def render() -> None:
             else:
                 st.warning("Please enter at least email and password.")
         st.markdown("")
-        if st.button("Already have an account? Log in", key="reg_login_link"):
+        if ui.button("Already have an account? Log in", key="reg_login_link", variant="outline"):
             st.session_state["auth_page"] = "login"
             st.rerun()

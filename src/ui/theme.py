@@ -123,6 +123,22 @@ def _build_app_css() -> str:
         visibility: visible !important;
         background: {SIDEBAR_BG} !important;
         border-right: 1px solid {BORDER};
+        overflow: visible !important;
+        position: relative !important;
+    }}
+    /* Sidebar collapse/expand control: on the right edge of the sidebar, not inset */
+    [data-testid="collapsedControl"],
+    div[data-testid="collapsedControl"],
+    button[data-testid="collapsedControl"] {{
+        z-index: 9999 !important;
+        position: absolute !important;
+        right: 0 !important;
+        top: 0.5rem !important;
+        min-width: 2.5rem !important;
+        overflow: visible !important;
+        visibility: visible !important;
+        display: block !important;
+        margin: 0 !important;
     }}
     section[data-testid="stSidebar"] .sidebar-app-header,
     div[data-testid="stSidebar"] .sidebar-app-header {{
