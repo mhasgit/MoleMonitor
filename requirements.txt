@@ -1,4 +1,7 @@
-streamlit
+# Prefer 1.36.x–1.39.x for layout stability; test when upgrading to 1.40+
+streamlit>=1.36,<1.40
+streamlit-extras>=0.4.0
+streamlit-shadcn-ui>=0.1.19
 numpy
 pandas
 pillow
