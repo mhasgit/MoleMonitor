@@ -1,0 +1,172 @@
+/** API client for MoleMonitor backend. */
+
+const API = '/api'
+
+export type Pair = {
+  id: number
+  pair_name: string
+  filename_a: string
+  filename_b: string
+  path_a: string
+  path_b: string
+  created_at: string
+}
+
+export type Report = {
+  id: number
+  pair_id: number
+  created_at: string
+  algo_version: string
+  metrics_json: string
+  decision_json: string
+  message_text: string
+  overlay_path: string | null
+  mask_a_path: string | null
+  mask_b_path: string | null
+}
+
+export type CompareResult = {
+  created_at: string
+  algo_version: string
+  metrics: Record<string, unknown>
+  decision: Record<string, unknown>
+  message_text: string
+  mask_a_b64: string | null
+  mask_b_b64: string | null
+  contour_a_b64: string | null
+  contour_b_b64: string | null
+  change_highlight_b64: string | null
+}
+
+export async function getPairs(): Promise<Pair[]> {
+  const r = await fetch(`${API}/pairs`)
+  if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
+  return r.json()
+}
+
+export async function getPair(id: number): Promise<Pair | null> {
+  const r = await fetch(`${API}/pairs/${id}`)
+  if (r.status === 404) return null
+  if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
+  return r.json()
+}
+
+export async function createPair(
+  imageA: File,
+  imageB: File,
+  pairName?: string,
+  filenameA?: string,
+  filenameB?: string
+): Promise<{ id: number; pair_name: string }> {
+  const form = new FormData()
+  form.append('image_a', imageA)
+  form.append('image_b', imageB)
+  if (pairName != null) form.append('pair_name', pairName)
+  form.append('filename_a', filenameA ?? imageA.name ?? 'upload')
+  form.append('filename_b', filenameB ?? imageB.name ?? 'upload')
+  const r = await fetch(`${API}/pairs`, { method: 'POST', body: form })
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}))
+    throw new Error((j as { error?: string }).error ?? r.statusText)
+  }
+  return r.json()
+}
+
+export async function deletePair(id: number): Promise<void> {
+  const r = await fetch(`${API}/pairs/${id}`, { method: 'DELETE' })
+  if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
+}
+
+export async function clearPairs(): Promise<void> {
+  const r = await fetch(`${API}/pairs`, { method: 'DELETE' })
+  if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
+}
+
+export async function compare(
+  imageA: File | Blob,
+  imageB: File | Blob,
+  options: { scaleMm?: number; useClahe?: boolean; blurKernelSize?: number } = {}
+): Promise<CompareResult> {
+  const form = new FormData()
+  const fileA = imageA instanceof File ? imageA : new File([imageA], 'image_a.jpg', { type: 'image/jpeg' })
+  const fileB = imageB instanceof File ? imageB : new File([imageB], 'image_b.jpg', { type: 'image/jpeg' })
+  form.append('image_a', fileA)
+  form.append('image_b', fileB)
+  if (options.scaleMm != null && options.scaleMm > 0) form.append('scale_mm', String(options.scaleMm))
+  form.append('use_clahe', options.useClahe ? '1' : '0')
+  form.append('blur_kernel_size', String(options.blurKernelSize ?? 0))
+  const r = await fetch(`${API}/compare`, { method: 'POST', body: form })
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}))
+    throw new Error((j as { error?: string }).error ?? r.statusText)
+  }
+  return r.json()
+}
+
+/** Basename of stored path for /uploads/ URL */
+function uploadsPath(path: string): string {
+  return path.replace(/^.*[/\\]/, '')
+}
+
+/** Full URL for an uploaded file (for img src, etc.) */
+export function uploadsUrl(path: string): string {
+  return `/uploads/${uploadsPath(path)}`
+}
+
+/** Re-compare using images from a saved pair (fetches by path then calls compare). */
+export async function compareFromPair(
+  pair: Pair,
+  options: { scaleMm?: number; useClahe?: boolean; blurKernelSize?: number } = {}
+): Promise<CompareResult> {
+  const [blobA, blobB] = await Promise.all([
+    fetch(`/uploads/${uploadsPath(pair.path_a)}`).then((r) => r.ok ? r.blob() : Promise.reject(new Error('Failed to load Image A'))),
+    fetch(`/uploads/${uploadsPath(pair.path_b)}`).then((r) => r.ok ? r.blob() : Promise.reject(new Error('Failed to load Image B'))),
+  ])
+  return compare(blobA, blobB, options)
+}
+
+export async function getReports(pairId: number): Promise<Report[]> {
+  const r = await fetch(`${API}/pairs/${pairId}/reports`)
+  if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
+  return r.json()
+}
+
+export async function saveReport(
+  pairId: number,
+  snapshot: {
+    created_at: string
+    algo_version: string
+    metrics: Record<string, unknown>
+    decision: Record<string, unknown>
+    message_text: string
+    overlay_path?: string | null
+    mask_a_path?: string | null
+    mask_b_path?: string | null
+  }
+): Promise<{ id: number }> {
+  const r = await fetch(`${API}/pairs/${pairId}/reports`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ snapshot }),
+  })
+  if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
+  return r.json()
+}
+
+/** Format pair created_at for display */
+export function formatPairTimestamp(iso: string): string {
+  if (!iso) return 'Unknown date'
+  try {
+    const s = iso.replace(/Z$/i, '')
+    const d = new Date(s)
+    return d.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso || 'Unknown date'
+  }
+}

@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* Single source of truth: CSS variables drive light/dark. @theme maps to these. */
+:root {
+  --surface: #f6f7f9;
+  --surface-sidebar: #f1f2f4;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --accent: #7B68EE;
+  --accent-hover: #9378f0;
+  --accent-active: #6a58d4;
+  --hover-bg: #f1f5f9;
+  --semantic-success: #22c55e;
+  --semantic-error: #ef4444;
+  --semantic-warning: #f59e0b;
+}
+
+html.dark {
+  --surface: #0f172a;
+  --surface-sidebar: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-active: #8b5cf6;
+  --hover-bg: #1e293b;
+  --semantic-success: #22c55e;
+  --semantic-error: #ef4444;
+  --semantic-warning: #f59e0b;
+}
+
+@theme {
+  --color-surface: var(--surface);
+  --color-surface-sidebar: var(--surface-sidebar);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-hover-surface: var(--hover-bg);
+  --color-semantic-success: var(--semantic-success);
+  --color-semantic-error: var(--semantic-error);
+  --color-semantic-warning: var(--semantic-warning);
+  --radius-card: 12px;
+  --radius-button: 10px;
+  --shadow-card: 0 4px 10px rgba(0,0,0,0.08);
+  --shadow-card-hover: 0 6px 14px rgba(0,0,0,0.1);
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text-primary);
+  background: var(--surface);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Select: theme tokens via vars so light/dark stay consistent */
+.select-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  outline: none;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.select-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.select-input:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 5%, var(--card));
+}
+
+#app {
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+h1 {
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+  margin: 0 0 0.5rem 0;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+h3 {
+  font-size: 1.125rem;
+}
+
+p {
+  margin: 0 0 0.5rem 0;
+  line-height: 1.625;
+  color: var(--text-muted);
+}
+

@@ -1,0 +1,6 @@
+export { Home } from './Home'
+export { HistoryPageWithModal } from './History'
+export { Dashboard } from './Dashboard'
+export { Instructions } from './Instructions'
+export { About } from './About'
+export { Login, Register, ForgotPassword } from './Auth'
