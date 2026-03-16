@@ -1,1 +1,0 @@
-# MoleMonitor src package
