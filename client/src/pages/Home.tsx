@@ -40,6 +40,8 @@ export function Home() {
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showFromUploads, setShowFromUploads] = useState(false)
+  const [showCompareOptions, setShowCompareOptions] = useState(false)
 
   const loadHistory = useCallback(async () => {
     try {
@@ -209,131 +211,247 @@ export function Home() {
     <Layout>
       <PageHeader title="Upload & Compare" />
       <div className="w-full space-y-8">
-      <section className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ImageUploader
-            label="Image A"
-            file={fileA}
-            previewUrl={srcA}
-            onFileChange={setFileAWithPreview}
-            accept=".jpg,.jpeg,.png,.webp,.bmp"
-            disabled={loading}
-          />
-          <ImageUploader
-            label="Image B"
-            file={fileB}
-            previewUrl={srcB}
-            onFileChange={setFileBWithPreview}
-            accept=".jpg,.jpeg,.png,.webp,.bmp"
-            disabled={loading}
-          />
-        </div>
-      </section>
-
-      {uploadedList.length > 0 && (
-        <section className="mt-8">
-          <Card className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4">From uploads</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Image A from uploads</Label>
-                <CustomSelect
-                  value={fromHistoryA ? uploadedList.findIndex((u) => {
-                    const entry = history.find((p) => p.id === fromHistoryA.pairId)
-                    if (!entry) return -1
-                    const path = fromHistoryA.slot === 'a' ? entry.path_a : entry.path_b
-                    return u.path === path
-                  }) + 1 : 0}
-                  onChange={(i) => {
-                    if (i <= 0) setFromHistoryA(null)
-                    else {
-                      const u = uploadedList[i - 1]
-                      const entry = history.find((p) => p.path_a === u.path || p.path_b === u.path)
-                      if (entry) setFromHistoryA({ pairId: entry.id, slot: entry.path_a === u.path ? 'a' : 'b' })
-                    }
-                  }}
-                  options={[
-                    { value: 0, label: '— Select image —' },
-                    ...uploadedList.map((u, i) => ({ value: i + 1, label: u.label })),
-                  ]}
-                  placeholder="— Select image —"
-                  className="mt-1.5"
+        <section>
+          <Card className="p-5 space-y-6">
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted m-0">
+                Images to compare
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ImageUploader
+                  label="Old image"
+                  file={fileA}
+                  previewUrl={srcA}
+                  onFileChange={setFileAWithPreview}
+                  accept=".jpg,.jpeg,.png,.webp,.bmp"
+                  disabled={loading}
+                />
+                <ImageUploader
+                  label="New image"
+                  file={fileB}
+                  previewUrl={srcB}
+                  onFileChange={setFileBWithPreview}
+                  accept=".jpg,.jpeg,.png,.webp,.bmp"
+                  disabled={loading}
                 />
               </div>
-              <div>
-                <Label>Image B from uploads</Label>
-                <CustomSelect
-                  value={fromHistoryB ? uploadedList.findIndex((u) => {
-                    const entry = history.find((p) => p.id === fromHistoryB.pairId)
-                    if (!entry) return -1
-                    const path = fromHistoryB.slot === 'a' ? entry.path_a : entry.path_b
-                    return u.path === path
-                  }) + 1 : 0}
-                  onChange={(i) => {
-                    if (i <= 0) setFromHistoryB(null)
-                    else {
-                      const u = uploadedList[i - 1]
-                      const entry = history.find((p) => p.path_a === u.path || p.path_b === u.path)
-                      if (entry) setFromHistoryB({ pairId: entry.id, slot: entry.path_a === u.path ? 'a' : 'b' })
-                    }
-                  }}
-                  options={[
-                    { value: 0, label: '— Select image —' },
-                    ...uploadedList.map((u, i) => ({ value: i + 1, label: u.label })),
-                  ]}
-                  placeholder="— Select image —"
-                  className="mt-1.5"
-                />
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label>Comparison name (optional)</Label>
+              <Input
+                type="text"
+                placeholder="Leave empty for auto (Pair 1, Pair 2, …)"
+                value={customLabel}
+                onChange={(e) => setCustomLabel(e.target.value)}
+                className="mt-1.5"
+              />
+              <p className="text-sm text-text-muted">
+                This name will be used when saving the pair and reports.
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-border">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  {uploadedList.length > 0 && (
+                    <>
+                      <label className="flex items-center gap-2 cursor-pointer text-text-primary">
+                        <input
+                          type="checkbox"
+                          checked={showFromUploads}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            setShowFromUploads(checked)
+                            if (!checked) {
+                              setFromHistoryA(null)
+                              setFromHistoryB(null)
+                            }
+                          }}
+                          className="rounded border-border"
+                        />
+                        <span className="text-sm font-medium">
+                          Choose old/new images from previous uploads
+                        </span>
+                      </label>
+                      {showFromUploads && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-text-muted m-0">
+                            From uploads
+                          </p>
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Old image from uploads</Label>
+                              <CustomSelect
+                                value={
+                                  fromHistoryA
+                                    ? uploadedList.findIndex((u) => {
+                                        const entry = history.find(
+                                          (p) => p.id === fromHistoryA.pairId,
+                                        )
+                                        if (!entry) return -1
+                                        const path =
+                                          fromHistoryA.slot === 'a'
+                                            ? entry.path_a
+                                            : entry.path_b
+                                        return u.path === path
+                                      }) + 1
+                                    : 0
+                                }
+                                onChange={(i) => {
+                                  if (i <= 0) setFromHistoryA(null)
+                                  else {
+                                    const u = uploadedList[i - 1]
+                                    const entry = history.find(
+                                      (p) => p.path_a === u.path || p.path_b === u.path,
+                                    )
+                                    if (entry)
+                                      setFromHistoryA({
+                                        pairId: entry.id,
+                                        slot: entry.path_a === u.path ? 'a' : 'b',
+                                      })
+                                  }
+                                }}
+                                options={[
+                                  { value: 0, label: '— Select image —' },
+                                  ...uploadedList.map((u, i) => ({
+                                    value: i + 1,
+                                    label: u.label,
+                                  })),
+                                ]}
+                                placeholder="— Select image —"
+                                className="mt-1.5"
+                              />
+                            </div>
+                            <div>
+                              <Label>New image from uploads</Label>
+                              <CustomSelect
+                                value={
+                                  fromHistoryB
+                                    ? uploadedList.findIndex((u) => {
+                                        const entry = history.find(
+                                          (p) => p.id === fromHistoryB.pairId,
+                                        )
+                                        if (!entry) return -1
+                                        const path =
+                                          fromHistoryB.slot === 'a'
+                                            ? entry.path_a
+                                            : entry.path_b
+                                        return u.path === path
+                                      }) + 1
+                                    : 0
+                                }
+                                onChange={(i) => {
+                                  if (i <= 0) setFromHistoryB(null)
+                                  else {
+                                    const u = uploadedList[i - 1]
+                                    const entry = history.find(
+                                      (p) => p.path_a === u.path || p.path_b === u.path,
+                                    )
+                                    if (entry)
+                                      setFromHistoryB({
+                                        pairId: entry.id,
+                                        slot: entry.path_a === u.path ? 'a' : 'b',
+                                      })
+                                  }
+                                }}
+                                options={[
+                                  { value: 0, label: '— Select image —' },
+                                  ...uploadedList.map((u, i) => ({
+                                    value: i + 1,
+                                    label: u.label,
+                                  })),
+                                ]}
+                                placeholder="— Select image —"
+                                className="mt-1.5"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border-l-4 border-accent pl-4 rounded-r-lg rounded-l-none bg-hover-surface py-4 pr-4 space-y-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-text-primary">
+                      <input
+                        type="checkbox"
+                        checked={showCompareOptions}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+                          setShowCompareOptions(checked)
+                          if (!checked) {
+                            setScaleMm(0)
+                            setUseClahe(false)
+                            setBlurKernel(0)
+                          }
+                        }}
+                        className="rounded border-border"
+                      />
+                      <span className="text-sm font-medium">Use advanced compare options</span>
+                    </label>
+                    {showCompareOptions && (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4">
+                          Compare options
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <Label>Scale (pixels per mm; leave 0 for unavailable)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={scaleMm || ''}
+                              onChange={(e) => setScaleMm(Number(e.target.value) || 0)}
+                              className="mt-1.5"
+                            />
+                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer text-text-primary">
+                            <input
+                              type="checkbox"
+                              checked={useClahe}
+                              onChange={(e) => setUseClahe(e.target.checked)}
+                              className="rounded border-border"
+                            />
+                            Use CLAHE (contrast)
+                          </label>
+                          <div>
+                            <Label>Noise reduction (Gaussian blur kernel size): {blurKernel}</Label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={7}
+                              step={2}
+                              value={blurKernel}
+                              onChange={(e) => setBlurKernel(Number(e.target.value))}
+                              className="w-full mt-1"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-border">
+              {error && <p className="text-semantic-error font-medium">{error}</p>}
+              <div className="flex flex-wrap gap-3">
+                <Button disabled={!bothOk || loading} onClick={handleCompare}>
+                  {loading ? <Spinner size={18} /> : null}
+                  Compare Images
+                </Button>
+                <Button variant="secondary" disabled={!bothOk || loading} onClick={handleSavePair}>
+                  Save Pair
+                </Button>
               </div>
             </div>
           </Card>
         </section>
-      )}
-
-      <section className="mt-8">
-        <Card className="p-5 space-y-5">
-          <div>
-            <Label>Pair label (optional)</Label>
-            <Input
-              type="text"
-              placeholder="Leave empty for auto (Pair 1, Pair 2, …)"
-              value={customLabel}
-              onChange={(e) => setCustomLabel(e.target.value)}
-              className="mt-1.5"
-            />
-            <p className="text-sm text-text-muted mt-1">Give this comparison a name, or leave blank to auto-generate.</p>
-          </div>
-
-          <div className="border-l-4 border-accent pl-4 rounded-r-lg rounded-l-none bg-hover-surface py-4 pr-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4">Compare options</p>
-            <div className="space-y-4">
-              <div>
-                <Label>Scale (pixels per mm; leave 0 for unavailable)</Label>
-                <Input type="number" min={0} step={0.5} value={scaleMm || ''} onChange={(e) => setScaleMm(Number(e.target.value) || 0)} className="mt-1.5" />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer text-text-primary">
-                <input type="checkbox" checked={useClahe} onChange={(e) => setUseClahe(e.target.checked)} className="rounded border-border" />
-                Use CLAHE (contrast)
-              </label>
-              <div>
-                <Label>Noise reduction (Gaussian blur kernel size): {blurKernel}</Label>
-                <input type="range" min={0} max={7} step={2} value={blurKernel} onChange={(e) => setBlurKernel(Number(e.target.value))} className="w-full mt-1" />
-              </div>
-            </div>
-          </div>
-
-          {error && <p className="text-semantic-error font-medium">{error}</p>}
-          <div className="flex flex-wrap gap-3 pt-4 border-t border-border">
-            <Button disabled={!bothOk || loading} onClick={handleCompare}>
-              {loading ? <Spinner size={18} /> : null}
-              Compare Images
-            </Button>
-            <Button variant="secondary" disabled={!bothOk || loading} onClick={handleSavePair}>
-              Save Pair
-            </Button>
-          </div>
-        </Card>
-      </section>
 
       {compareResult && (
         <Card className="mt-8 space-y-4">

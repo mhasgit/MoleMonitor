@@ -119,8 +119,8 @@ export async function compareFromPair(
   options: { scaleMm?: number; useClahe?: boolean; blurKernelSize?: number } = {}
 ): Promise<CompareResult> {
   const [blobA, blobB] = await Promise.all([
-    fetch(`/uploads/${uploadsPath(pair.path_a)}`).then((r) => r.ok ? r.blob() : Promise.reject(new Error('Failed to load Image A'))),
-    fetch(`/uploads/${uploadsPath(pair.path_b)}`).then((r) => r.ok ? r.blob() : Promise.reject(new Error('Failed to load Image B'))),
+    fetch(`/uploads/${uploadsPath(pair.path_a)}`).then((r) => r.ok ? r.blob() : Promise.reject(new Error('Failed to load old image'))),
+    fetch(`/uploads/${uploadsPath(pair.path_b)}`).then((r) => r.ok ? r.blob() : Promise.reject(new Error('Failed to load new image'))),
   ])
   return compare(blobA, blobB, options)
 }

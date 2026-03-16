@@ -17,14 +17,14 @@ export function PairHistoryCard({ pair, onViewReport, onDelete }: PairHistoryCar
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-hover-surface border border-border shrink-0">
           <img
             src={uploadsUrl(pair.path_a)}
-            alt="Image A"
+            alt="Old image"
             className="w-full h-full object-cover"
           />
         </div>
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-hover-surface border border-border shrink-0">
           <img
             src={uploadsUrl(pair.path_b)}
-            alt="Image B"
+            alt="New image"
             className="w-full h-full object-cover"
           />
         </div>
