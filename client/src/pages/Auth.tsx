@@ -23,6 +23,17 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+//password validation logic
+const isValidPassword = (password: string) => {
+  const minLength = password.length >=12
+  const hasUpper = /[A-Z]/.test(password)
+  const hasLower = /[a-z]/.test(password)
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  const hasNumber = /\d/.test(password)
+
+  return minLength && hasUpper && hasLower && hasSpecialChar && hasNumber
+}
+
 
 export function Login({ onLogin }: { onLogin: (userName: string) => void }) {
   const navigate = useNavigate()
@@ -32,13 +43,19 @@ export function Login({ onLogin }: { onLogin: (userName: string) => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if ((email || '').trim() && (password || '').trim()) {
-      onLogin((email || '').trim())
-      navigate('/dashboard')
-    } else {
+    
+    const trimmedEmail = email.trim()
+    const trimmedPassword = password.trim()
+
+    if (!trimmedEmail || !trimmedPassword) {
       setWarn('Please enter email and password.')
+      return
     }
-  }
+
+    onLogin(trimmedEmail)
+    navigate('/dashboard')
+    }
+  
   return (
     <AuthLayout>
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
@@ -69,13 +86,32 @@ export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if ((email || '').trim() && (password || '').trim()) {
-      onLogin((name || email || '').trim())
-      navigate('/dashboard')
-    } else {
-      setWarn('Please enter at least email and password.')
+
+    const trimmedName = name.trim()
+    const trimmedEmail = email.trim()
+    const trimmedPassword = password.trim()
+
+    //validation of login form
+    //required fields
+    if (!trimmedEmail || !trimmedPassword) {
+      setWarn('All fields are required.')
+      return
     }
+    //email format
+    if(!trimmedEmail.includes('@')) {
+      setWarn('Invalid email format.')
+      return
+    }
+    //password strength
+    if(!isValidPassword(trimmedPassword)) {
+      setWarn('Password must be at least 12 characters and include uppercase, lowercase, number and special character.')
+      return
+    }
+    //success
+    onLogin(trimmedName || trimmedEmail)
+    navigate('/dashboard')
   }
+
   return (
     <AuthLayout>
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
@@ -110,6 +146,7 @@ export function ForgotPassword() {
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault()
+
     if ((phone || '').trim()) {
       setStep('reset')
       setWarn('')
@@ -119,15 +156,33 @@ export function ForgotPassword() {
   }
   const handleReset = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newPassword && newPassword === confirmPassword) {
-      setSuccess(true)
-      setStep('phone')
-      setWarn('')
-      setTimeout(() => navigate('/login'), 1500)
-    } else {
-      setWarn('Passwords must match and not be empty.')
+
+    const trimmedNewPassword = newPassword.trim()
+    const trimmedConfirmPassword = confirmPassword.trim()
+
+    //Required fields
+    if (!trimmedNewPassword || !trimmedConfirmPassword) {
+      setWarn('Please fill in both password fields.')
+      return
     }
+    //passwords match validation
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
+      setWarn('Passwords must match.')
+      return
+    }
+    //password strength check 
+    if (!isValidPassword(trimmedNewPassword)) {
+      setWarn('Passwords must be at least 12 characters and include uppercase, lowercase, special character and a number.')
+      return
+    }
+
+    //success password change
+    setSuccess(true)
+    setStep('phone')
+    setWarn('')
+    setTimeout(() => navigate('/login'), 1500)
   }
+
   return (
     <AuthLayout>
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
