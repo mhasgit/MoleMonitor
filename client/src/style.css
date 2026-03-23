@@ -17,6 +17,10 @@
   --semantic-warning: #f59e0b;
 }
 
+html {
+  font-size: 90%;
+}
+
 html.dark {
   --surface: #0f172a;
   --surface-sidebar: #0f172a;
@@ -27,7 +31,7 @@ html.dark {
   --accent: #a78bfa;
   --accent-hover: #c4b5fd;
   --accent-active: #8b5cf6;
-  --hover-bg: #1e293b;
+  --hover-bg: #334155;
   --semantic-success: #22c55e;
   --semantic-error: #ef4444;
   --semantic-warning: #f59e0b;
