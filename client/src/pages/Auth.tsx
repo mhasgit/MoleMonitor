@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Label, Input, Button } from '../components'
+import { supabase } from '../supabase'
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -41,7 +42,7 @@ export function Login({ onLogin }: { onLogin: (userName: string) => void }) {
   const [password, setPassword] = useState('')
   const [warn, setWarn] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     const trimmedEmail = email.trim()
@@ -52,7 +53,15 @@ export function Login({ onLogin }: { onLogin: (userName: string) => void }) {
       return
     }
 
-    onLogin(trimmedEmail)
+    const {error} = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password: trimmedPassword
+    })
+
+    if (error) {
+      setWarn('Invalid login credentials')
+      return
+    }
     navigate('/dashboard')
     }
   
@@ -81,10 +90,9 @@ export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [phone, setPhone] = useState('')
   const [warn, setWarn] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const trimmedName = name.trim()
@@ -107,6 +115,16 @@ export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
       setWarn('Password must be at least 12 characters and include uppercase, lowercase, number and special character.')
       return
     }
+
+    const { error } = await supabase.auth.signUp({
+      email: trimmedEmail,
+      password: trimmedPassword
+    })
+
+    if (error) {
+      setWarn(error.message)
+      return
+    }
     //success
     onLogin(trimmedName || trimmedEmail)
     navigate('/dashboard')
@@ -123,8 +141,6 @@ export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
         <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" />
         <Label>Password</Label>
         <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" />
-        <Label>Phone number</Label>
-        <Input type="tel" placeholder="Used for password recovery" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-4" />
         {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
         <div className="flex flex-col gap-2 mt-3">
           <Button type="submit">Register</Button>
@@ -136,25 +152,56 @@ export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
 }
 
 export function ForgotPassword() {
+
   const navigate = useNavigate()
-  const [step, setStep] = useState<'phone' | 'reset'>('phone')
-  const [phone, setPhone] = useState('')
-  const [newPassword, setNewPassword] = useState('')
+  const [searchParams] = useSearchParams()
+  const [step, setStep] = useState<'email' | 'reset'>('email')
+  const [email, setEmail] = useState('')
+  const [newPassword, setNewPassword] = useState ('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [warn, setWarn] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const handleContinue = (e: React.FormEvent) => {
-    e.preventDefault()
+//reset email link forward to reset password page
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1))
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+    const type = hashParams.get('type')
 
-    if ((phone || '').trim()) {
+    if (accessToken && refreshToken && type === 'recovery') {
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      })
       setStep('reset')
-      setWarn('')
+    }
+  }, [])
+
+  //send reset email
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+        setWarn('Please enter your email.')
+        return
+    }
+  
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      redirectTo: `http://localhost:5174/forgot-password?type=recovery`
+    })
+
+    if (error) {
+      setWarn(error.message)
     } else {
-      setWarn('Please enter your phone number.')
+      setSuccess(true)
+      setWarn('')
     }
   }
-  const handleReset = (e: React.FormEvent) => {
+
+  //reset password using access tokens
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const trimmedNewPassword = newPassword.trim()
@@ -176,38 +223,45 @@ export function ForgotPassword() {
       return
     }
 
-    //success password change
-    setSuccess(true)
-    setStep('phone')
-    setWarn('')
-    setTimeout(() => navigate('/login'), 1500)
+    //update password using access tokens
+    const {error} = await supabase.auth.updateUser({
+      password: trimmedNewPassword,
+    })
+
+    if (error) {
+      setWarn(error.message)
+    } else {
+      setSuccess(true)
+      setWarn('')
+      setTimeout(() => navigate('/login'), 1500)
+    }
   }
 
   return (
     <AuthLayout>
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
       <h3 className="text-lg font-medium text-text-primary mb-6">Forgot your password?</h3>
-      {step === 'phone' ? (
-        <form className="max-w-[260px] w-full mx-auto" onSubmit={handleContinue}>
-          <Label>Phone number</Label>
-          <Input type="tel" placeholder="Enter the number used for registration" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-4" />
+      {step === 'email' ? (
+        <form className="max-w-[260px] w-full mx-auto" onSubmit={handleSendEmail}>
+          <Label>Email Address</Label>
+          <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" />
           {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
           <div className="flex flex-col gap-2 mt-3">
-            <Button type="submit">Continue</Button>
+            <Button type="submit">Send Reset Email</Button>
           </div>
         </form>
       ) : (
-        <form className="max-w-[260px] w-full mx-auto" onSubmit={handleReset}>
-          <p className="text-sm text-text-muted mb-4">If this number is registered, you can reset your password below.</p>
+        <form className="max-w-[260px] w-full mx-auto" onSubmit={handleResetPassword}>
+          <p className="text-sm text-text-muted mb-4">Please reset your password below.</p>
           <Label>New password</Label>
           <Input type="password" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mb-4" />
           <Label>Confirm password</Label>
           <Input type="password" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mb-4" />
           {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-          {success && <p className="text-semantic-success font-medium mb-2">Password reset (mock). You can log in now.</p>}
+          {success && <p className="text-semantic-success font-medium mb-2">Password reset.</p>}
           <div className="flex flex-col gap-2 mt-3">
             <Button type="submit">Reset password</Button>
-            <Button variant="secondary" type="button" onClick={() => { setStep('phone'); navigate('/login') }}>Back to Log in</Button>
+            <Button variant="secondary" type="button" onClick={() => {navigate('/login') }}>Back to Log in</Button>
           </div>
         </form>
       )}
