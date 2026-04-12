@@ -20,8 +20,8 @@ export function Instructions() {
         title="Take a Clear Mole Photo"
         subtitle="A few simple tips for consistent, comparable photos."
       />
-      <div className="w-full max-w-3xl space-y-8">
-        <p className="text-base leading-relaxed text-text-primary max-w-2xl">
+      <div className="w-full space-y-8">
+        <p className="text-base leading-relaxed text-text-primary">
           Follow these tips to help the system compare your mole images accurately.
         </p>
 
@@ -53,13 +53,6 @@ export function Instructions() {
             })}
           </ul>
         </Card>
-
-        <div className="border-l-4 border-border pl-4 py-1">
-          <p className="text-sm leading-relaxed text-text-muted m-0 italic">
-            MoleMonitor detects visible changes in a mole over time. It does <strong className="text-text-primary">not</strong> provide medical diagnosis.
-            If you are concerned about a mole, please consult a healthcare professional.
-          </p>
-        </div>
 
         <div className="flex flex-col sm:flex-row gap-4 pt-2">
           <Button onClick={() => navigate('/home')}>

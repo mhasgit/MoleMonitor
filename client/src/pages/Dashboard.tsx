@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getPairs } from '../api'
 import type { Pair } from '../api'
 import { Card, Layout, ReportDatesCalendar } from '../components'
+import { AlertTriangle } from 'lucide-react'
 
 function toYYYYMMDD(d: Date): string {
   const y = d.getFullYear()
@@ -57,23 +58,36 @@ export function Dashboard({ userName: _userName, history, setHistory }: { userNa
 
   return (
     <Layout>
+      <div className="rounded-card shadow-card-elevated dark:shadow-card-elevated-dark px-6 py-4 mb-6 flex gap-4 items-start bg-yellow-200 bg-yellow-900/8 border border-yellow-300 dark:border-yellow-700/50">
+        <AlertTriangle className="w-7 h-7 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden />
+        <div>
+          <p className="text-lg font-bold m-0 mb-1 text-amber-600 dark:text-amber-400">Important disclaimer</p>
+          <p className="m-0 text-base leading-relaxed text-text-primary font-normal">
+            MoleMonitor does not provide medical diagnosis. It only helps you store and compare images. If you have any concern about a mole or your skin health, please consult a healthcare professional.
+          </p>
+        </div>
+      </div>
       <div className="w-full flex-1 min-h-0 flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
-            <Card className="border-l-4 border-l-accent">
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted m-0">Reports generated</p>
+            <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
+              <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Reports generated</p>
+              <p className="text-sm text-text-muted mt-1 m-0">Mole pair comparisons saved to your history.</p>
               <p className="text-2xl font-bold text-text-primary mt-2 m-0">{reportCount}</p>
             </Card>
-            <Card className="border-l-4 border-l-accent">
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted m-0">Overall changes</p>
+            <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
+              <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Overall changes</p>
+              <p className="text-sm text-text-muted mt-1 m-0">Comparisons where the system detected changes.</p>
               <p className="text-2xl font-bold text-text-primary mt-2 m-0">{Math.min(reportCount * 2, 7)}</p>
             </Card>
-            <Card className="border-l-4 border-l-accent">
-              <p className="text-xs font-semibold uppercase tracking-wide text-text-muted m-0">Total images uploaded</p>
+            <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
+              <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Total images uploaded</p>
+              <p className="text-sm text-text-muted mt-1 m-0">Old and new photos you&apos;ve uploaded.</p>
               <p className="text-2xl font-bold text-text-primary mt-2 m-0">{totalImages}</p>
             </Card>
           </div>
-          <Card className="border-l-4 border-l-accent flex-1 min-h-0 flex flex-col">
-            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2 shrink-0">Report dates</p>
+          <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200 flex-1 min-h-0 flex flex-col">
+            <p className="text-base font-semibold uppercase tracking-wide m-0 shrink-0" style={{ color: '#22c55e' }}>Report dates</p>
+            <p className="text-sm text-text-muted mt-1 mb-2 m-0 shrink-0">Days when you saved comparison reports are highlighted in red.</p>
             <div className="flex-1 min-h-0 flex flex-col">
             <ReportDatesCalendar
               reportDatesSet={reportDatesSet}

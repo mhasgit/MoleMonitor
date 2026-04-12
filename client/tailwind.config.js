@@ -12,6 +12,10 @@ export default {
       boxShadow: {
         card: '0 4px 10px rgba(0,0,0,0.08)',
         'card-hover': '0 6px 14px rgba(0,0,0,0.1)',
+        'card-elevated': '0 4px 14px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)',
+        'card-elevated-hover': '0 8px 24px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06)',
+        'card-elevated-dark': '0 4px 14px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.15)',
+        'card-elevated-hover-dark': '0 8px 24px rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.2)',
       },
     },
   },

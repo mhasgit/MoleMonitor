@@ -5,6 +5,7 @@ import {
   getReports,
   deletePair,
   formatPairTimestamp,
+  uploadsUrl,
   type Pair,
   type Report,
 } from '../api'
@@ -14,9 +15,11 @@ import {
   Button,
   Card,
   PageHeader,
-  PairHistoryCard,
   Layout,
+  CustomSelect,
+  Label,
 } from '../components'
+import { FileText, Trash2 } from 'lucide-react'
 import { buildReportMessage } from '../utils/reportMessage'
 
 type DecisionShape = {
@@ -24,7 +27,6 @@ type DecisionShape = {
   confidence?: string
   summary_reason?: string
   triggered_rules?: string[]
-}
 
 function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number; pairName: string; timestamp: string; onClose: () => void }) {
   const [reports, setReports] = useState<Report[] | null>(null)
@@ -179,6 +181,19 @@ function HistoryPage(
   }, [loadHistory])
 
   const [pairToDelete, setPairToDelete] = useState<Pair | null>(null)
+  const [dateFilterValue, setDateFilterValue] = useState(0)
+  const [nameFilterValue, setNameFilterValue] = useState(0)
+
+  const uniqueDates = [...new Set(history.map((p) => p.created_at.slice(0, 10)))].sort((a, b) => b.localeCompare(a))
+  const uniqueNames = [...new Set(history.map((p) => p.pair_name || `Pair ${p.id}`))].sort((a, b) => a.localeCompare(b))
+
+  const filteredHistory = history.filter((p) => {
+    const pairDate = p.created_at.slice(0, 10)
+    const pairName = p.pair_name || `Pair ${p.id}`
+    const dateMatch = dateFilterValue === 0 || pairDate === uniqueDates[dateFilterValue - 1]
+    const nameMatch = nameFilterValue === 0 || pairName === uniqueNames[nameFilterValue - 1]
+    return dateMatch && nameMatch
+  })
 
   const handleDeleteClick = useCallback((pair: Pair) => {
     setPairToDelete(pair)
@@ -222,14 +237,100 @@ function HistoryPage(
       )}
       <PageHeader title="Image History" />
       <div className="w-full space-y-4">
-        {history.map((e) => (
-          <PairHistoryCard
-            key={e.id}
-            pair={e}
-            onViewReport={() => setReportModal({ pairId: e.id, pairName: e.pair_name || `Pair ${e.id}`, timestamp: e.created_at })}
-            onDelete={() => handleDeleteClick(e)}
-          />
-        ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end w-full">
+          <div className="min-w-0">
+            <Label>Filter by date</Label>
+            <CustomSelect
+              value={dateFilterValue}
+              onChange={setDateFilterValue}
+              options={[
+                { value: 0, label: 'All dates' },
+                ...uniqueDates.map((d, i) => ({ value: i + 1, label: formatDateForDisplay(d) })),
+              ]}
+              placeholder="All dates"
+            />
+          </div>
+          <div className="min-w-0">
+            <Label>Filter by name</Label>
+            <CustomSelect
+              value={nameFilterValue}
+              onChange={setNameFilterValue}
+              options={[
+                { value: 0, label: 'All names' },
+                ...uniqueNames.map((n, i) => ({ value: i + 1, label: n })),
+              ]}
+              placeholder="All names"
+            />
+          </div>
+        </div>
+
+        {filteredHistory.length === 0 ? (
+          <Card className="border-dashed text-center">
+            <p className="m-0 text-text-muted">No pairs match the selected filters.</p>
+          </Card>
+        ) : (
+          <div className="overflow-x-auto rounded-card border border-border">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-hover-surface">
+                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-text-muted px-4 py-3">Old image</th>
+                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-text-muted px-4 py-3">New image</th>
+                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-text-muted px-4 py-3">Name</th>
+                  <th className="text-left text-xs font-semibold uppercase tracking-wider text-text-muted px-4 py-3">Date</th>
+                  <th className="text-right text-xs font-semibold uppercase tracking-wider text-text-muted px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHistory.map((e, idx) => (
+                  <tr
+                    key={e.id}
+                    className={`border-b border-border ${idx % 2 === 1 ? 'bg-hover-surface' : ''}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-hover-surface border border-border shrink-0">
+                        <img
+                          src={uploadsUrl(e.path_a)}
+                          alt="Old image"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-hover-surface border border-border shrink-0">
+                        <img
+                          src={uploadsUrl(e.path_b)}
+                          alt="New image"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-bold text-text-primary">{e.pair_name || `Pair ${e.id}`}</span>
+                    </td>
+                    <td className="px-4 py-3 text-text-muted text-sm">
+                      {formatPairTimestamp(e.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="primary"
+                          onClick={() => setReportModal({ pairId: e.id, pairName: e.pair_name || `Pair ${e.id}`, timestamp: e.created_at })}
+                        >
+                          <FileText className="w-4 h-4" />
+                          View Report
+                        </Button>
+                        <Button variant="destructive" onClick={() => handleDeleteClick(e)}>
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </Layout>
   )
