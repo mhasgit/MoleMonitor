@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getPairs } from '../api'
+import { getPairs, getReports } from '../api'
 import type { Pair } from '../api'
 import { Card, Layout, ReportDatesCalendar } from '../components'
 import { AlertTriangle } from 'lucide-react'
@@ -11,13 +11,46 @@ function toYYYYMMDD(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+function reportIndicatesChange(decisionJson: string): boolean {
+  try {
+    const d = JSON.parse(decisionJson) as { action?: string }
+    return d.action === 'MONITOR' || d.action === 'RECOMMEND_REVIEW'
+  } catch {
+    return false
+  }
+}
+
 export function Dashboard({ userName: _userName, history, setHistory }: { userName: string; history: Pair[]; setHistory: React.Dispatch<React.SetStateAction<Pair[]>> }) {
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear())
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth())
+  const [pairsWithChanges, setPairsWithChanges] = useState(0)
 
   useEffect(() => {
     getPairs().then(setHistory).catch(() => setHistory([]))
   }, [setHistory])
+
+  useEffect(() => {
+    if (history.length === 0) {
+      setPairsWithChanges(0)
+      return
+    }
+    let cancelled = false
+    Promise.all(history.map((p) => getReports(p.id)))
+      .then((allReports) => {
+        if (cancelled) return
+        let n = 0
+        for (const reports of allReports) {
+          if (reports.some((r) => reportIndicatesChange(r.decision_json))) n++
+        }
+        setPairsWithChanges(n)
+      })
+      .catch(() => {
+        if (!cancelled) setPairsWithChanges(0)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [history])
 
   const reportDatesSet = useMemo(() => {
     const set = new Set<string>()
@@ -30,26 +63,6 @@ export function Dashboard({ userName: _userName, history, setHistory }: { userNa
         // skip invalid
       }
     }
-    // Mock report dates for demo (current month + previous + next)
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = now.getMonth() // 0-11
-    const currMonth = String(m + 1).padStart(2, '0')
-    const prevMonth = m === 0 ? '12' : String(m).padStart(2, '0')
-    const prevYear = m === 0 ? y - 1 : y
-    const nextMonth = m === 11 ? '01' : String(m + 2).padStart(2, '0')
-    const nextYear = m === 11 ? y + 1 : y
-    const mockDates = [
-      `${y}-${currMonth}-05`,
-      `${y}-${currMonth}-12`,
-      `${y}-${currMonth}-19`,
-      `${y}-${currMonth}-25`,
-      `${prevYear}-${prevMonth}-15`,
-      `${prevYear}-${prevMonth}-28`,
-      `${nextYear}-${nextMonth}-03`,
-      `${nextYear}-${nextMonth}-17`,
-    ]
-    mockDates.forEach((d) => set.add(d))
     return set
   }, [history])
 
@@ -77,7 +90,7 @@ export function Dashboard({ userName: _userName, history, setHistory }: { userNa
             <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
               <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Overall changes</p>
               <p className="text-sm text-text-muted mt-1 m-0">Comparisons where the system detected changes.</p>
-              <p className="text-2xl font-bold text-text-primary mt-2 m-0">{Math.min(reportCount * 2, 7)}</p>
+              <p className="text-2xl font-bold text-text-primary mt-2 m-0">{pairsWithChanges}</p>
             </Card>
             <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
               <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Total images uploaded</p>

@@ -262,7 +262,7 @@ export function ForgotPassword() {
           <Label>Confirm password</Label>
           <Input type="password" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mb-4" />
           {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-          {success && <p className="text-semantic-success font-medium mb-2">Password reset.</p>}
+          {success && <p className="text-semantic-success font-medium mb-2">Password updated. You can log in now.</p>}
           <div className="flex flex-col gap-2 mt-3">
             <Button type="submit">Reset password</Button>
             <Button variant="secondary" type="button" onClick={() => {navigate('/login') }}>Back to Log in</Button>

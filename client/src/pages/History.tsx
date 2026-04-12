@@ -22,11 +22,23 @@ import {
 import { FileText, Trash2 } from 'lucide-react'
 import { buildReportMessage } from '../utils/reportMessage'
 
+/** YYYY-MM-DD from pair created_at → readable label for filter dropdown */
+function formatDateForDisplay(isoDate: string): string {
+  try {
+    const d = new Date(`${isoDate}T12:00:00`)
+    if (Number.isNaN(d.getTime())) return isoDate
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  } catch {
+    return isoDate
+  }
+}
+
 type DecisionShape = {
   action?: string
   confidence?: string
   summary_reason?: string
   triggered_rules?: string[]
+}
 
 function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number; pairName: string; timestamp: string; onClose: () => void }) {
   const [reports, setReports] = useState<Report[] | null>(null)
