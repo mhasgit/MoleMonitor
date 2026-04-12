@@ -22,14 +22,11 @@ import {
 import { FileText, Trash2 } from 'lucide-react'
 import { buildReportMessage } from '../utils/reportMessage'
 
-function formatDateForDisplay(isoDate: string): string {
-  try {
-    const d = new Date(isoDate + 'T12:00:00')
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-  } catch {
-    return isoDate
-  }
-}
+type DecisionShape = {
+  action?: string
+  confidence?: string
+  summary_reason?: string
+  triggered_rules?: string[]
 
 function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number; pairName: string; timestamp: string; onClose: () => void }) {
   const [reports, setReports] = useState<Report[] | null>(null)
@@ -49,11 +46,11 @@ function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number;
     : null
 
   let isWarning = false
-  let decision: { action?: string; confidence?: string; summary_reason?: string; triggered_rules?: string[] } | null = null
+  let decision: DecisionShape | null = null
   let metrics: Record<string, unknown> = {}
   if (report?.decision_json) {
     try {
-      decision = JSON.parse(report.decision_json) as typeof decision
+      decision = JSON.parse(report.decision_json) as DecisionShape
       isWarning = !!(decision?.action === 'RECOMMEND_REVIEW' || decision?.confidence === 'LOW' || decision?.action === 'MONITOR')
     } catch { /* ignore */ }
   }
