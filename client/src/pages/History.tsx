@@ -19,6 +19,13 @@ import {
 } from '../components'
 import { buildReportMessage } from '../utils/reportMessage'
 
+type DecisionShape = {
+  action?: string
+  confidence?: string
+  summary_reason?: string
+  triggered_rules?: string[]
+}
+
 function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number; pairName: string; timestamp: string; onClose: () => void }) {
   const [reports, setReports] = useState<Report[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,11 +44,11 @@ function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number;
     : null
 
   let isWarning = false
-  let decision: { action?: string; confidence?: string; summary_reason?: string; triggered_rules?: string[] } | null = null
+  let decision: DecisionShape | null = null
   let metrics: Record<string, unknown> = {}
   if (report?.decision_json) {
     try {
-      decision = JSON.parse(report.decision_json) as typeof decision
+      decision = JSON.parse(report.decision_json) as DecisionShape
       isWarning = !!(decision?.action === 'RECOMMEND_REVIEW' || decision?.confidence === 'LOW' || decision?.action === 'MONITOR')
     } catch { /* ignore */ }
   }

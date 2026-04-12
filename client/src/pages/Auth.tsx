@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Label, Input, Button } from '../components'
 import { supabase } from '../supabase'
 
@@ -53,17 +53,19 @@ export function Login({ onLogin }: { onLogin: (userName: string) => void }) {
       return
     }
 
-    const {error} = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
-      password: trimmedPassword
+      password: trimmedPassword,
     })
 
     if (error) {
       setWarn('Invalid login credentials')
       return
     }
+    const label = data.user?.email ?? trimmedEmail
+    onLogin(label)
     navigate('/dashboard')
-    }
+  }
   
   return (
     <AuthLayout>
@@ -154,7 +156,6 @@ export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
 export function ForgotPassword() {
 
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const [step, setStep] = useState<'email' | 'reset'>('email')
   const [email, setEmail] = useState('')
   const [newPassword, setNewPassword] = useState ('')
@@ -170,11 +171,14 @@ export function ForgotPassword() {
     const type = hashParams.get('type')
 
     if (accessToken && refreshToken && type === 'recovery') {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      })
-      setStep('reset')
+      void supabase.auth
+        .setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        .then(({ error }) => {
+          if (!error) setStep('reset')
+        })
     }
   }, [])
 
@@ -189,7 +193,7 @@ export function ForgotPassword() {
     }
   
     const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-      redirectTo: `http://localhost:5174/forgot-password?type=recovery`
+      redirectTo: `${window.location.origin}/forgot-password`,
     })
 
     if (error) {

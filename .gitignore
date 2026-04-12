@@ -1,0 +1,11 @@
+# Root: never commit dependencies here (use client/ or api/)
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Env secrets (use client/.env.example as template)
+.env
+.env.local
+.env.*.local
