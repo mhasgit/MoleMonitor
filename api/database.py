@@ -16,6 +16,16 @@ def _db_path() -> Path:
     return _project_root() / config.DB_PATH
 
 
+def _migrate_users_columns(conn: sqlite3.Connection) -> None:
+    """Add full_name and phone to existing users table if missing."""
+    cur = conn.execute("PRAGMA table_info(users)")
+    cols = {row[1] for row in cur.fetchall()}
+    if "full_name" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN full_name TEXT NOT NULL DEFAULT ''")
+    if "phone" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+
+
 def init_db() -> None:
     """Create data dirs and DB file; create tables if missing."""
     root = _project_root()
@@ -29,7 +39,9 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                full_name TEXT NOT NULL DEFAULT '',
+                phone TEXT
             );
             CREATE TABLE IF NOT EXISTS pairs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,6 +66,13 @@ def init_db() -> None:
                 mask_b_path TEXT
             );
         """)
+        _migrate_users_columns(conn)
+        conn.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique
+            ON users(phone) WHERE phone IS NOT NULL AND phone != ''
+            """
+        )
         conn.commit()
     finally:
         conn.close()
@@ -97,52 +116,74 @@ def insert_pair(
         conn.close()
 
 
-def get_pairs() -> list[dict[str, Any]]:
-    """Return all pairs, newest first."""
+def get_pairs(user_id: int) -> list[dict[str, Any]]:
+    """Return pairs for this user only, newest first."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT id, pair_name, filename_a, filename_b, path_a, path_b, created_at FROM pairs ORDER BY id DESC"
+            """SELECT id, pair_name, filename_a, filename_b, path_a, path_b, created_at
+               FROM pairs WHERE user_id = ? ORDER BY id DESC""",
+            (user_id,),
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def get_pair_by_id(pair_id: int) -> dict[str, Any] | None:
-    """Return a single pair by id, or None if not found."""
+def get_pair_by_id(pair_id: int, user_id: int | None = None) -> dict[str, Any] | None:
+    """Return a single pair by id. If user_id is set, only if owned by that user."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
         conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT id, pair_name, filename_a, filename_b, path_a, path_b, created_at FROM pairs WHERE id = ?",
-            (pair_id,),
-        ).fetchone()
+        if user_id is not None:
+            row = conn.execute(
+                """SELECT id, user_id, pair_name, filename_a, filename_b, path_a, path_b, created_at
+                   FROM pairs WHERE id = ? AND user_id = ?""",
+                (pair_id, user_id),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """SELECT id, user_id, pair_name, filename_a, filename_b, path_a, path_b, created_at
+                   FROM pairs WHERE id = ?""",
+                (pair_id,),
+            ).fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
 
 
-def delete_pair(pair_id: int) -> None:
-    """Delete a single pair by id. Does not delete image files."""
+def delete_pair(pair_id: int, user_id: int) -> bool:
+    """Delete a single pair if it belongs to user_id. Removes reports; does not delete image files."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
-        conn.execute("DELETE FROM pairs WHERE id = ?", (pair_id,))
+        row = conn.execute(
+            "SELECT id FROM pairs WHERE id = ? AND user_id = ?", (pair_id, user_id)
+        ).fetchone()
+        if not row:
+            return False
+        conn.execute("DELETE FROM comparison_reports WHERE pair_id = ?", (pair_id,))
+        conn.execute("DELETE FROM pairs WHERE id = ? AND user_id = ?", (pair_id, user_id))
         conn.commit()
+        return True
     finally:
         conn.close()
 
 
-def clear_pairs() -> None:
-    """Delete all pairs from DB. Does not delete image files."""
+def clear_pairs(user_id: int) -> None:
+    """Delete all pairs (and their reports) for this user. Does not delete image files."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
-        conn.execute("DELETE FROM pairs")
+        conn.execute(
+            """DELETE FROM comparison_reports WHERE pair_id IN
+               (SELECT id FROM pairs WHERE user_id = ?)""",
+            (user_id,),
+        )
+        conn.execute("DELETE FROM pairs WHERE user_id = ?", (user_id,))
         conn.commit()
     finally:
         conn.close()
@@ -216,5 +257,88 @@ def get_report_by_id(report_id: int) -> dict[str, Any] | None:
             (report_id,),
         ).fetchone()
         return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def insert_user(
+    full_name: str,
+    email: str,
+    phone: str,
+    password_hash: str,
+) -> int:
+    """Insert a user; return new id. Email and phone must be unique (phone normalized)."""
+    from datetime import datetime
+
+    init_db()
+    conn = sqlite3.connect(str(_db_path()))
+    try:
+        cur = conn.execute(
+            """INSERT INTO users (email, password_hash, created_at, full_name, phone)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                email.strip().lower(),
+                password_hash,
+                datetime.utcnow().isoformat() + "Z",
+                full_name.strip(),
+                phone,
+            ),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email: str) -> dict[str, Any] | None:
+    init_db()
+    conn = sqlite3.connect(str(_db_path()))
+    try:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT id, email, password_hash, full_name, phone, created_at FROM users WHERE email = ?",
+            (email.strip().lower(),),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_user_by_phone(phone_normalized: str) -> dict[str, Any] | None:
+    if not phone_normalized:
+        return None
+    init_db()
+    conn = sqlite3.connect(str(_db_path()))
+    try:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT id, email, password_hash, full_name, phone, created_at FROM users WHERE phone = ?",
+            (phone_normalized,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_user_by_id(user_id: int) -> dict[str, Any] | None:
+    init_db()
+    conn = sqlite3.connect(str(_db_path()))
+    try:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT id, email, full_name, phone, created_at FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def update_user_password(user_id: int, password_hash: str) -> None:
+    init_db()
+    conn = sqlite3.connect(str(_db_path()))
+    try:
+        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+        conn.commit()
     finally:
         conn.close()

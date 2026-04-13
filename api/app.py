@@ -3,12 +3,16 @@
 import base64
 import json
 import os
+import sqlite3
 from io import BytesIO
 
 import numpy as np
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from werkzeug.security import check_password_hash, generate_password_hash
 
+import auth_tokens
+import auth_validation
 import config
 import database
 from compare import run_pipeline
@@ -21,6 +25,26 @@ def create_app() -> Flask:
     app = Flask(__name__)
     CORS(app, origins=os.environ.get("CORS_ORIGINS", "*").split(","))
     database.init_db()
+
+    def _get_auth_user_id() -> int | None:
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return None
+        token = auth[7:].strip()
+        if not token:
+            return None
+        return auth_tokens.decode_token(token, auth_tokens.TOKEN_TYPE_ACCESS)
+
+    def _pair_public_dict(p: dict) -> dict:
+        return {
+            "id": p["id"],
+            "pair_name": p["pair_name"],
+            "filename_a": p["filename_a"],
+            "filename_b": p["filename_b"],
+            "path_a": p["path_a"],
+            "path_b": p["path_b"],
+            "created_at": p["created_at"],
+        }
 
     def _decode_image(field: str):
         f = request.files.get(field)
@@ -41,25 +65,120 @@ def create_app() -> Flask:
     def health():
         return jsonify({"status": "ok"})
 
+    @app.route("/api/auth/register", methods=["POST"])
+    def auth_register():
+        data = request.get_json() or {}
+        full_name = (data.get("full_name") or "").strip()
+        email = (data.get("email") or "").strip()
+        password = data.get("password") or ""
+        phone = auth_validation.normalize_phone(data.get("phone") or "")
+        if not full_name:
+            return jsonify({"error": "Full name is required"}), 400
+        if not auth_validation.is_valid_email(email):
+            return jsonify({"error": "Invalid email address"}), 400
+        if not auth_validation.is_valid_password(password):
+            return jsonify(
+                {"error": "Password must be more than 6 characters and include a special character"}
+            ), 400
+        if len(phone) < 7:
+            return jsonify({"error": "Valid phone number is required"}), 400
+        if database.get_user_by_email(email):
+            return jsonify({"error": "An account with this email already exists"}), 409
+        if database.get_user_by_phone(phone):
+            return jsonify({"error": "An account with this phone number already exists"}), 409
+        pw_hash = generate_password_hash(password)
+        try:
+            user_id = database.insert_user(full_name, email, phone, pw_hash)
+        except sqlite3.IntegrityError:
+            return jsonify({"error": "Could not create account"}), 409
+        return (
+            jsonify({"ok": True, "message": "Account created."}),
+            201,
+        )
+
+    @app.route("/api/auth/login", methods=["POST"])
+    def auth_login():
+        data = request.get_json() or {}
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+        user = database.get_user_by_email(email)
+        if not user or not check_password_hash(user["password_hash"], password):
+            return jsonify({"error": "Invalid email or password"}), 401
+        row = database.get_user_by_id(user["id"])
+        token = auth_tokens.encode_access_token(user["id"])
+        return jsonify(
+            {
+                "token": token,
+                "user": {
+                    "id": row["id"],
+                    "email": row["email"],
+                    "full_name": row["full_name"],
+                },
+            }
+        )
+
+    @app.route("/api/auth/me", methods=["GET"])
+    def auth_me():
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        user = database.get_user_by_id(uid)
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        return jsonify(
+            {
+                "id": user["id"],
+                "email": user["email"],
+                "full_name": user["full_name"],
+                "phone": user["phone"],
+            }
+        )
+
+    @app.route("/api/auth/forgot/verify-phone", methods=["POST"])
+    def auth_forgot_verify_phone():
+        data = request.get_json() or {}
+        phone = auth_validation.normalize_phone(data.get("phone") or "")
+        if len(phone) < 7:
+            return jsonify({"error": "Enter a valid phone number"}), 400
+        user = database.get_user_by_phone(phone)
+        if not user:
+            return jsonify({"error": "Could not complete request"}), 404
+        reset_token = auth_tokens.encode_reset_token(user["id"])
+        return jsonify({"reset_token": reset_token})
+
+    @app.route("/api/auth/forgot/reset", methods=["POST"])
+    def auth_forgot_reset():
+        data = request.get_json() or {}
+        reset_token = (data.get("reset_token") or "").strip()
+        new_password = data.get("new_password") or ""
+        if not reset_token:
+            return jsonify({"error": "Reset token is required"}), 400
+        uid = auth_tokens.decode_token(reset_token, auth_tokens.TOKEN_TYPE_RESET)
+        if uid is None:
+            return jsonify({"error": "Invalid or expired reset link"}), 400
+        if not auth_validation.is_valid_password(new_password):
+            return jsonify(
+                {"error": "Password must be more than 6 characters and include a special character"}
+            ), 400
+        database.update_user_password(uid, generate_password_hash(new_password))
+        return jsonify({"ok": True})
+
     @app.route("/api/pairs", methods=["GET"])
     def list_pairs():
-        pairs = database.get_pairs()
-        out = [
-            {
-                "id": p["id"],
-                "pair_name": p["pair_name"],
-                "filename_a": p["filename_a"],
-                "filename_b": p["filename_b"],
-                "path_a": p["path_a"],
-                "path_b": p["path_b"],
-                "created_at": p["created_at"],
-            }
-            for p in pairs
-        ]
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        pairs = database.get_pairs(uid)
+        out = [_pair_public_dict(p) for p in pairs]
         return jsonify(out)
 
     @app.route("/api/pairs", methods=["POST"])
     def create_pair():
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
         img_a = _decode_image("image_a")
         img_b = _decode_image("image_b")
         if img_a is None or img_b is None:
@@ -71,7 +190,7 @@ def create_app() -> Flask:
         path_b = images.save_image_to_uploads(img_b, "b")
         if not path_a or not path_b:
             return jsonify({"error": "Failed to save images"}), 500
-        rows = database.get_pairs()
+        rows = database.get_pairs(uid)
         n = len(rows) + 1
         label = pair_name or f"Pair {n}"
         pair_id = database.insert_pair(
@@ -80,31 +199,41 @@ def create_app() -> Flask:
             filename_b=name_b,
             path_a=path_a,
             path_b=path_b,
+            user_id=uid,
         )
         return jsonify({"id": pair_id, "pair_name": label})
 
     @app.route("/api/pairs/<int:pair_id>", methods=["GET"])
     def get_pair(pair_id):
-        p = database.get_pair_by_id(pair_id)
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        p = database.get_pair_by_id(pair_id, user_id=uid)
         if not p:
             return jsonify({"error": "Pair not found"}), 404
-        return jsonify(dict(p))
+        return jsonify(_pair_public_dict(p))
 
     @app.route("/api/pairs/<int:pair_id>", methods=["DELETE"])
     def delete_pair(pair_id):
-        p = database.get_pair_by_id(pair_id)
-        if not p:
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        if not database.delete_pair(pair_id, uid):
             return jsonify({"error": "Pair not found"}), 404
-        database.delete_pair(pair_id)
         return jsonify({"ok": True})
 
     @app.route("/api/pairs", methods=["DELETE"])
     def clear_pairs():
-        database.clear_pairs()
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        database.clear_pairs(uid)
         return jsonify({"ok": True})
 
     @app.route("/api/compare", methods=["POST"])
     def compare():
+        if _get_auth_user_id() is None:
+            return jsonify({"error": "Unauthorized"}), 401
         img_a = _decode_image("image_a")
         img_b = _decode_image("image_b")
         if img_a is None or img_b is None:
@@ -154,14 +283,20 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs/<int:pair_id>/reports", methods=["GET"])
     def list_reports(pair_id):
-        if not database.get_pair_by_id(pair_id):
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        if not database.get_pair_by_id(pair_id, user_id=uid):
             return jsonify({"error": "Pair not found"}), 404
         reports = database.get_reports_for_pair(pair_id)
         return jsonify([dict(r) for r in reports])
 
     @app.route("/api/pairs/<int:pair_id>/reports", methods=["POST"])
     def create_report(pair_id):
-        if not database.get_pair_by_id(pair_id):
+        uid = _get_auth_user_id()
+        if uid is None:
+            return jsonify({"error": "Unauthorized"}), 401
+        if not database.get_pair_by_id(pair_id, user_id=uid):
             return jsonify({"error": "Pair not found"}), 404
         body = request.get_json() or {}
         snap = body.get("snapshot")
@@ -195,4 +330,7 @@ def create_app() -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=os.environ.get("FLASK_DEBUG", "0") == "1")
+    port = int(os.environ.get("PORT", 5000))
+    _debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    # use_reloader reloads routes when you edit app.py (set FLASK_DEBUG=1 for local dev)
+    app.run(host="0.0.0.0", port=port, debug=_debug, use_reloader=_debug)

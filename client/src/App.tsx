@@ -4,7 +4,7 @@ import { Toaster } from 'sonner'
 import { AuthContext, useAuth } from './contexts/AuthContext'
 import { BackendStatusContext } from './contexts/BackendStatusContext'
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'
-import { getPairs } from './api'
+import { getPairs, ApiError } from './api'
 import type { Pair } from './api'
 import {
   Home,
@@ -46,13 +46,18 @@ export default function App() {
       const list = await getPairs()
       setHistory(list)
       setBackendError(false)
-    } catch {
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        auth.logout()
+        setBackendError(false)
+        return
+      }
       setBackendError(true)
     }
-  }, [])
+  }, [auth.logout])
 
   useEffect(() => {
-    if (auth.authenticated) {
+    if (auth.authenticated && auth.authReady) {
       getPairs()
         .then((list) => {
           setHistory(list)
@@ -63,7 +68,18 @@ export default function App() {
           setBackendError(true)
         })
     }
-  }, [auth.authenticated])
+    if (!auth.authenticated && auth.authReady) {
+      setHistory([])
+    }
+  }, [auth.authenticated, auth.authReady, auth.logout])
+
+  if (!auth.authReady) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-surface" aria-busy="true" />
+      </ThemeProvider>
+    )
+  }
 
   return (
     <ThemeProvider>
@@ -72,7 +88,7 @@ export default function App() {
         <BackendStatusContext.Provider value={{ backendError, setBackendError, retry: retryBackend }}>
           <Routes>
           <Route path="/login" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={auth.login} />} />
-          <Route path="/register" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Register onLogin={auth.login} />} />
+          <Route path="/register" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
           <Route path="/forgot-password" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
           <Route path="/" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
           <Route path="/dashboard" element={auth.authenticated ? <Dashboard userName={auth.userName} history={history} setHistory={setHistory} /> : <Navigate to="/login" replace />} />

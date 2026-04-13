@@ -1,50 +1,67 @@
 import { useState, useCallback, useEffect, createContext } from 'react'
-import { supabase } from '../supabase'
+import type { AuthUser } from '../authApi'
+import { getMe, getStoredToken, setStoredToken } from '../authApi'
 
 export type AuthContextType = {
   authenticated: boolean
+  user: AuthUser | null
+  /** Display name: full name or email */
   userName: string
-  login: (userName: string) => void
+  authReady: boolean
+  login: (token: string, user: AuthUser) => void
   logout: () => void
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
+function displayName(user: AuthUser | null): string {
+  if (!user) return 'Demo User'
+  const n = (user.full_name || '').trim()
+  return n || user.email
+}
+
 export function useAuth() {
-  const [auth, setAuth] = useState<{ authenticated: boolean; userName: string }>({
-    authenticated: false,
-    userName: 'Demo User',
-  })
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const email = session?.user?.email
-      if (email) {
-        setAuth({ authenticated: true, userName: email })
-      }
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const email = session?.user?.email
-      if (email) {
-        setAuth({ authenticated: true, userName: email })
-      } else {
-        setAuth({ authenticated: false, userName: 'Demo User' })
-      }
-    })
-    return () => subscription.unsubscribe()
+    const token = getStoredToken()
+    if (!token) {
+      setUser(null)
+      setAuthReady(true)
+      return
+    }
+    getMe()
+      .then((u) => {
+        setUser({
+          id: u.id,
+          email: u.email,
+          full_name: u.full_name,
+        })
+      })
+      .catch(() => {
+        setStoredToken(null)
+        setUser(null)
+      })
+      .finally(() => setAuthReady(true))
   }, [])
 
-  const login = useCallback((userName: string) => {
-    setAuth({ authenticated: true, userName })
+  const login = useCallback((token: string, u: AuthUser) => {
+    setStoredToken(token)
+    setUser(u)
   }, [])
 
-  const logout = useCallback(async () => {
-    await supabase.auth.signOut()
-    setAuth({ authenticated: false, userName: 'Demo User' })
+  const logout = useCallback(() => {
+    setStoredToken(null)
+    setUser(null)
   }, [])
 
-  return { ...auth, login, logout }
+  return {
+    authenticated: !!user,
+    user,
+    userName: displayName(user),
+    authReady,
+    login,
+    logout,
+  }
 }

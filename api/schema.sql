@@ -1,11 +1,17 @@
--- MoleMonitor SQLite Schema
--- For use with GraphMyDB and other ER diagram tools
+-- MoleMonitor SQLite schema (mirrors database.init_db).
+-- For GraphMyDB, ER diagrams, and fresh DB setup.
+
+-- ---------------------------------------------------------------------------
+-- Tables
+-- ---------------------------------------------------------------------------
 
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    full_name TEXT NOT NULL DEFAULT '',
+    phone TEXT
 );
 
 CREATE TABLE pairs (

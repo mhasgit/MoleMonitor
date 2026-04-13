@@ -1,16 +1,18 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useContext } from 'react'
 import {
   getPairs,
   createPair,
   compare,
   saveReport,
   uploadsUrl,
+  ApiError,
   type Pair,
   type CompareResult,
 } from '../api'
 import { CheckCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useBackendStatus } from '../contexts/BackendStatusContext'
+import { AuthContext } from '../contexts/AuthContext'
 import {
   Button,
   Card,
@@ -25,6 +27,7 @@ import {
 import { buildReportMessage } from '../utils/reportMessage'
 
 export function Home() {
+  const auth = useContext(AuthContext)
   const setBackendError = useBackendStatus()?.setBackendError
   const [history, setHistory] = useState<Pair[]>([])
   const [fileA, setFileA] = useState<File | null>(null)
@@ -48,11 +51,16 @@ export function Home() {
       const list = await getPairs()
       setHistory(list)
       setBackendError?.(false)
-    } catch {
+    } catch (e) {
       setHistory([])
+      if (e instanceof ApiError && e.status === 401) {
+        auth?.logout()
+        setBackendError?.(false)
+        return
+      }
       setBackendError?.(true)
     }
-  }, [setBackendError])
+  }, [setBackendError, auth?.logout])
 
   useEffect(() => {
     loadHistory()

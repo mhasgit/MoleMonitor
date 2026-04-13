@@ -22,6 +22,11 @@ DATA_DIR = os.environ.get("DATA_DIR", "data")
 UPLOADS_DIR = os.environ.get("UPLOADS_DIR", "data/uploads")
 DB_PATH = os.environ.get("DB_PATH", "data/molemonitor.db")
 
+# JWT (set JWT_SECRET in production)
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-change-in-production")
+JWT_ACCESS_EXPIRATION_SECONDS = int(os.environ.get("JWT_ACCESS_EXPIRATION_SECONDS", str(7 * 24 * 60 * 60)))
+JWT_RESET_EXPIRATION_SECONDS = int(os.environ.get("JWT_RESET_EXPIRATION_SECONDS", str(15 * 60)))
+
 COMPARE_ALGO_VERSION = "phase1_heuristic_v1"
 
 # Decision thresholds

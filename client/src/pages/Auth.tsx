@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Label, Input, Button } from '../components'
-import { supabase } from '../supabase'
+import type { AuthUser } from '../authApi'
+import { loginUser, registerUser, resetPasswordWithToken, verifyPhoneForReset } from '../authApi'
+import { isValidEmail, isValidPassword, normalizePhone } from '../utils/validation'
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,251 +27,245 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
-//password validation logic
-const isValidPassword = (password: string) => {
-  const minLength = password.length >=12
-  const hasUpper = /[A-Z]/.test(password)
-  const hasLower = /[a-z]/.test(password)
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-  const hasNumber = /\d/.test(password)
 
-  return minLength && hasUpper && hasLower && hasSpecialChar && hasNumber
-}
-
-
-export function Login({ onLogin }: { onLogin: (userName: string) => void }) {
+export function Login({
+  onLogin,
+}: {
+  onLogin: (token: string, user: AuthUser) => void
+}) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [warn, setWarn] = useState('')
 
+  useEffect(() => {
+    const st = location.state as { registered?: boolean } | null
+    if (st?.registered) {
+      toast.success('Account created. You can log in with your email and password.')
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.pathname, location.state, navigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     const trimmedEmail = email.trim()
-    const trimmedPassword = password.trim()
+    const trimmedPassword = password
 
     if (!trimmedEmail || !trimmedPassword) {
       setWarn('Please enter email and password.')
       return
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password: trimmedPassword,
-    })
-
-    if (error) {
-      setWarn('Invalid login credentials')
-      return
+    try {
+      const { token, user } = await loginUser(trimmedEmail, trimmedPassword)
+      onLogin(token, user)
+      navigate('/dashboard')
+    } catch (err) {
+      setWarn(err instanceof Error ? err.message : 'Invalid login credentials')
     }
-    const label = data.user?.email ?? trimmedEmail
-    onLogin(label)
-    navigate('/dashboard')
   }
-  
+
   return (
     <AuthLayout>
-      <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
-      <h3 className="text-lg font-medium text-text-primary mb-6">Log in</h3>
-      <form className="max-w-[260px] w-full mx-auto" onSubmit={handleSubmit}>
-        <Label>Email address</Label>
-        <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" />
-        <Label>Password</Label>
-        <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" />
-        {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-        <div className="flex flex-col gap-2 mt-3">
-          <Button type="submit">Log in</Button>
-          <Button variant="secondary" type="button" onClick={() => navigate('/forgot-password')}>Forgot your password?</Button>
-          <Button variant="ghost" type="button" onClick={() => navigate('/register')}>Don&apos;t have an account? Register</Button>
+      <div className="w-full max-w-[260px] self-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">Welcome to Mole Monitor</h1>
+          <h3 className="text-lg font-medium text-text-primary mb-6">Log in to Your Account</h3>
         </div>
-      </form>
+        <form className="w-full" onSubmit={handleSubmit}>
+          <Label>Email address</Label>
+          <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" autoComplete="email" />
+          <Label>Password</Label>
+          <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" autoComplete="current-password" />
+          {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+          <div className="flex flex-col gap-2 mt-3">
+            <Button type="submit">Log in</Button>
+            <Button variant="secondary" type="button" onClick={() => navigate('/forgot-password')}>
+              Forgot your password?
+            </Button>
+            <Button variant="ghost" type="button" onClick={() => navigate('/register')}>
+              Don&apos;t have an account? Register
+            </Button>
+          </div>
+        </form>
+      </div>
     </AuthLayout>
   )
 }
 
-export function Register({ onLogin }: { onLogin: (userName: string) => void }) {
+export function Register() {
   const navigate = useNavigate()
-  const [name, setName] = useState('')
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [warn, setWarn] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const name = fullName.trim()
+    const em = email.trim()
+    const pw = password
+    const ph = normalizePhone(phone)
 
-    const trimmedName = name.trim()
-    const trimmedEmail = email.trim()
-    const trimmedPassword = password.trim()
-
-    //validation of login form
-    //required fields
-    if (!trimmedEmail || !trimmedPassword) {
-      setWarn('All fields are required.')
+    if (!name || !em || !pw || !phone.trim()) {
+      setWarn('Full name, email, password, and phone are required.')
       return
     }
-    //email format
-    if(!trimmedEmail.includes('@')) {
-      setWarn('Invalid email format.')
+    if (!isValidEmail(em)) {
+      setWarn('Please enter a valid email address.')
       return
     }
-    //password strength
-    if(!isValidPassword(trimmedPassword)) {
-      setWarn('Password must be at least 12 characters and include uppercase, lowercase, number and special character.')
+    if (!isValidPassword(pw)) {
+      setWarn('Password must be more than 6 characters and include a special character.')
+      return
+    }
+    if (ph.length < 7) {
+      setWarn('Please enter a valid phone number (at least 7 digits).')
       return
     }
 
-    const { error } = await supabase.auth.signUp({
-      email: trimmedEmail,
-      password: trimmedPassword
-    })
-
-    if (error) {
-      setWarn(error.message)
-      return
+    try {
+      await registerUser({
+        full_name: name,
+        email: em,
+        password: pw,
+        phone: phone.trim(),
+      })
+      navigate('/login', { replace: true, state: { registered: true } })
+    } catch (err) {
+      setWarn(err instanceof Error ? err.message : 'Registration failed')
     }
-    //success
-    onLogin(trimmedName || trimmedEmail)
-    navigate('/dashboard')
   }
 
   return (
     <AuthLayout>
-      <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
-      <h3 className="text-lg font-medium text-text-primary mb-6">Create account</h3>
-      <form className="max-w-[260px] w-full mx-auto" onSubmit={handleSubmit}>
-        <Label>Name</Label>
-        <Input type="text" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="mb-4" />
-        <Label>Email address</Label>
-        <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" />
-        <Label>Password</Label>
-        <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" />
-        {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-        <div className="flex flex-col gap-2 mt-3">
-          <Button type="submit">Register</Button>
-          <Button variant="secondary" type="button" onClick={() => navigate('/login')}>Already have an account? Log in</Button>
+      <div className="w-full max-w-[280px] self-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
+          <h3 className="text-lg font-medium text-text-primary mb-6">Create account</h3>
         </div>
-      </form>
+        <form className="w-full" onSubmit={handleSubmit}>
+          <Label>Full name</Label>
+          <Input type="text" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="mb-4" autoComplete="name" />
+          <Label>Email address</Label>
+          <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" autoComplete="email" />
+          <Label>Phone number</Label>
+          <Input type="tel" placeholder="Used for password recovery" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-4" autoComplete="tel" />
+          <Label>Password</Label>
+          <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" autoComplete="new-password" />
+          {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+          <div className="flex flex-col gap-2 mt-3">
+            <Button type="submit">Register</Button>
+            <Button variant="secondary" type="button" onClick={() => navigate('/login')}>
+              Already have an account? Log in
+            </Button>
+          </div>
+        </form>
+      </div>
     </AuthLayout>
   )
 }
 
 export function ForgotPassword() {
-
   const navigate = useNavigate()
-  const [step, setStep] = useState<'email' | 'reset'>('email')
-  const [email, setEmail] = useState('')
-  const [newPassword, setNewPassword] = useState ('')
+  const [step, setStep] = useState<'phone' | 'reset'>('phone')
+  const [phone, setPhone] = useState('')
+  const [resetToken, setResetToken] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [warn, setWarn] = useState('')
   const [success, setSuccess] = useState(false)
 
-//reset email link forward to reset password page
-  useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.slice(1))
-    const accessToken = hashParams.get('access_token')
-    const refreshToken = hashParams.get('refresh_token')
-    const type = hashParams.get('type')
-
-    if (accessToken && refreshToken && type === 'recovery') {
-      void supabase.auth
-        .setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-        .then(({ error }) => {
-          if (!error) setStep('reset')
-        })
-    }
-  }, [])
-
-  //send reset email
-  const handleSendEmail = async (e: React.FormEvent) => {
+  const handleVerifyPhone = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    const trimmedEmail = email.trim()
-    if (!trimmedEmail) {
-        setWarn('Please enter your email.')
-        return
+    const ph = normalizePhone(phone)
+    if (ph.length < 7) {
+      setWarn('Please enter a valid phone number.')
+      return
     }
-  
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-      redirectTo: `${window.location.origin}/forgot-password`,
-    })
-
-    if (error) {
-      setWarn(error.message)
-    } else {
-      setSuccess(true)
+    try {
+      const { reset_token } = await verifyPhoneForReset(phone.trim())
+      setResetToken(reset_token)
+      setStep('reset')
       setWarn('')
+    } catch {
+      setWarn('Could not complete request. Check your phone number.')
     }
   }
 
-  //reset password using access tokens
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    const trimmedNewPassword = newPassword.trim()
-    const trimmedConfirmPassword = confirmPassword.trim()
-
-    //Required fields
-    if (!trimmedNewPassword || !trimmedConfirmPassword) {
+    if (!resetToken) {
+      setWarn('Session expired. Start again.')
+      return
+    }
+    if (!newPassword || !confirmPassword) {
       setWarn('Please fill in both password fields.')
       return
     }
-    //passwords match validation
-    if (trimmedNewPassword !== trimmedConfirmPassword) {
+    if (newPassword !== confirmPassword) {
       setWarn('Passwords must match.')
       return
     }
-    //password strength check 
-    if (!isValidPassword(trimmedNewPassword)) {
-      setWarn('Passwords must be at least 12 characters and include uppercase, lowercase, special character and a number.')
+    if (!isValidPassword(newPassword)) {
+      setWarn('Password must be more than 6 characters and include a special character.')
       return
     }
-
-    //update password using access tokens
-    const {error} = await supabase.auth.updateUser({
-      password: trimmedNewPassword,
-    })
-
-    if (error) {
-      setWarn(error.message)
-    } else {
+    try {
+      await resetPasswordWithToken(resetToken, newPassword)
       setSuccess(true)
       setWarn('')
       setTimeout(() => navigate('/login'), 1500)
+    } catch (err) {
+      setWarn(err instanceof Error ? err.message : 'Could not reset password.')
     }
   }
 
   return (
     <AuthLayout>
-      <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
-      <h3 className="text-lg font-medium text-text-primary mb-6">Forgot your password?</h3>
-      {step === 'email' ? (
-        <form className="max-w-[260px] w-full mx-auto" onSubmit={handleSendEmail}>
-          <Label>Email Address</Label>
-          <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" />
-          {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-          <div className="flex flex-col gap-2 mt-3">
-            <Button type="submit">Send Reset Email</Button>
-          </div>
-        </form>
-      ) : (
-        <form className="max-w-[260px] w-full mx-auto" onSubmit={handleResetPassword}>
-          <p className="text-sm text-text-muted mb-4">Please reset your password below.</p>
-          <Label>New password</Label>
-          <Input type="password" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mb-4" />
-          <Label>Confirm password</Label>
-          <Input type="password" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mb-4" />
-          {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-          {success && <p className="text-semantic-success font-medium mb-2">Password updated. You can log in now.</p>}
-          <div className="flex flex-col gap-2 mt-3">
-            <Button type="submit">Reset password</Button>
-            <Button variant="secondary" type="button" onClick={() => {navigate('/login') }}>Back to Log in</Button>
-          </div>
-        </form>
-      )}
+      <div className="w-full max-w-[280px] self-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
+          <h3 className="text-lg font-medium text-text-primary mb-6">Forgot your password?</h3>
+        </div>
+        {step === 'phone' ? (
+          <form className="w-full" onSubmit={handleVerifyPhone}>
+            <p className="text-sm text-text-muted mb-4 m-0">Enter the phone number you used when registering.</p>
+            <Label>Phone number</Label>
+            <Input type="tel" placeholder="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-4" autoComplete="tel" />
+            {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+            <div className="flex flex-col gap-2 mt-3">
+              <Button type="submit">Continue</Button>
+              <Button variant="secondary" type="button" onClick={() => navigate('/login')}>
+                Back to Log in
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form className="w-full" onSubmit={handleResetPassword}>
+            <p className="text-sm text-text-muted mb-4 m-0">Enter your new password below.</p>
+            <Label>New password</Label>
+            <Input type="password" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mb-4" autoComplete="new-password" />
+            <Label>Confirm password</Label>
+            <Input type="password" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="mb-4" autoComplete="new-password" />
+            {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+            {success && <p className="text-semantic-success font-medium mb-2">Password updated. Redirecting to log in…</p>}
+            <div className="flex flex-col gap-2 mt-3">
+              <Button type="submit" disabled={success}>
+                Reset password
+              </Button>
+              <Button variant="secondary" type="button" onClick={() => { setStep('phone'); setResetToken(null); setWarn('') }}>
+                Back
+              </Button>
+              <Button variant="ghost" type="button" onClick={() => navigate('/login')}>
+                Back to Log in
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
     </AuthLayout>
   )
 }

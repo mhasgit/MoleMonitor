@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useContext } from 'react'
 import { CheckCircle, AlertCircle } from 'lucide-react'
 import {
   getPairs,
@@ -6,11 +6,13 @@ import {
   deletePair,
   formatPairTimestamp,
   uploadsUrl,
+  ApiError,
   type Pair,
   type Report,
 } from '../api'
 import { toast } from 'sonner'
 import { useBackendStatus } from '../contexts/BackendStatusContext'
+import { AuthContext } from '../contexts/AuthContext'
 import {
   Button,
   Card,
@@ -176,17 +178,23 @@ function HistoryPage(
     setReportModal: React.Dispatch<React.SetStateAction<{ pairId: number; pairName: string; timestamp: string } | null>>
   }
 ) {
+  const auth = useContext(AuthContext)
   const setBackendError = useBackendStatus()?.setBackendError
   const loadHistory = useCallback(async () => {
     try {
       const list = await getPairs()
       setHistory(list)
       setBackendError?.(false)
-    } catch {
+    } catch (e) {
       setHistory([])
+      if (e instanceof ApiError && e.status === 401) {
+        auth?.logout()
+        setBackendError?.(false)
+        return
+      }
       setBackendError?.(true)
     }
-  }, [setHistory, setBackendError])
+  }, [setHistory, setBackendError, auth?.logout])
 
   useEffect(() => {
     loadHistory()
@@ -223,9 +231,14 @@ function HistoryPage(
       toast.success(`"${name}" has been removed from Image History.`)
     } catch (e) {
       toast.error(String(e))
+      if (e instanceof ApiError && e.status === 401) {
+        auth?.logout()
+        setBackendError?.(false)
+        return
+      }
       setBackendError?.(true)
     }
-  }, [pairToDelete, setHistory, setBackendError])
+  }, [pairToDelete, setHistory, setBackendError, auth?.logout])
 
   if (history.length === 0) {
     return (
