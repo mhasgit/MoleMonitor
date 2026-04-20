@@ -9,9 +9,9 @@ CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    confirm_password TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    full_name TEXT NOT NULL DEFAULT '',
-    phone TEXT
+    full_name TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE pairs (

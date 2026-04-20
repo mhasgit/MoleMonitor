@@ -17,13 +17,13 @@ def _db_path() -> Path:
 
 
 def _migrate_users_columns(conn: sqlite3.Connection) -> None:
-    """Add full_name and phone to existing users table if missing."""
+    """Add users columns needed by current auth flow if missing."""
     cur = conn.execute("PRAGMA table_info(users)")
     cols = {row[1] for row in cur.fetchall()}
     if "full_name" not in cols:
         conn.execute("ALTER TABLE users ADD COLUMN full_name TEXT NOT NULL DEFAULT ''")
-    if "phone" not in cols:
-        conn.execute("ALTER TABLE users ADD COLUMN phone TEXT")
+    if "confirm_password" not in cols:
+        conn.execute("ALTER TABLE users ADD COLUMN confirm_password TEXT NOT NULL DEFAULT ''")
 
 
 def init_db() -> None:
@@ -39,9 +39,9 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
+                confirm_password TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                full_name TEXT NOT NULL DEFAULT '',
-                phone TEXT
+                full_name TEXT NOT NULL DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS pairs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,12 +67,6 @@ def init_db() -> None:
             );
         """)
         _migrate_users_columns(conn)
-        conn.execute(
-            """
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone_unique
-            ON users(phone) WHERE phone IS NOT NULL AND phone != ''
-            """
-        )
         conn.commit()
     finally:
         conn.close()
@@ -264,24 +258,24 @@ def get_report_by_id(report_id: int) -> dict[str, Any] | None:
 def insert_user(
     full_name: str,
     email: str,
-    phone: str,
     password_hash: str,
+    confirm_password: str,
 ) -> int:
-    """Insert a user; return new id. Email and phone must be unique (phone normalized)."""
+    """Insert a user; return new id."""
     from datetime import datetime
 
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
         cur = conn.execute(
-            """INSERT INTO users (email, password_hash, created_at, full_name, phone)
+            """INSERT INTO users (email, password_hash, confirm_password, created_at, full_name)
                VALUES (?, ?, ?, ?, ?)""",
             (
                 email.strip().lower(),
                 password_hash,
+                confirm_password,
                 datetime.utcnow().isoformat() + "Z",
                 full_name.strip(),
-                phone,
             ),
         )
         conn.commit()
@@ -296,24 +290,8 @@ def get_user_by_email(email: str) -> dict[str, Any] | None:
     try:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT id, email, password_hash, full_name, phone, created_at FROM users WHERE email = ?",
+            "SELECT id, email, password_hash, confirm_password, full_name, created_at FROM users WHERE email = ?",
             (email.strip().lower(),),
-        ).fetchone()
-        return dict(row) if row else None
-    finally:
-        conn.close()
-
-
-def get_user_by_phone(phone_normalized: str) -> dict[str, Any] | None:
-    if not phone_normalized:
-        return None
-    init_db()
-    conn = sqlite3.connect(str(_db_path()))
-    try:
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT id, email, password_hash, full_name, phone, created_at FROM users WHERE phone = ?",
-            (phone_normalized,),
         ).fetchone()
         return dict(row) if row else None
     finally:
@@ -326,7 +304,7 @@ def get_user_by_id(user_id: int) -> dict[str, Any] | None:
     try:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT id, email, full_name, phone, created_at FROM users WHERE id = ?",
+            "SELECT id, email, full_name, created_at FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         return dict(row) if row else None
@@ -338,7 +316,10 @@ def update_user_password(user_id: int, password_hash: str) -> None:
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
-        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+        conn.execute(
+            "UPDATE users SET password_hash = ?, confirm_password = ? WHERE id = ?",
+            (password_hash, password_hash, user_id),
+        )
         conn.commit()
     finally:
         conn.close()

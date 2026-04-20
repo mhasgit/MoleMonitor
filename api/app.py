@@ -71,7 +71,6 @@ def create_app() -> Flask:
         full_name = (data.get("full_name") or "").strip()
         email = (data.get("email") or "").strip()
         password = data.get("password") or ""
-        phone = auth_validation.normalize_phone(data.get("phone") or "")
         if not full_name:
             return jsonify({"error": "Full name is required"}), 400
         if not auth_validation.is_valid_email(email):
@@ -80,15 +79,11 @@ def create_app() -> Flask:
             return jsonify(
                 {"error": "Password must be more than 6 characters and include a special character"}
             ), 400
-        if len(phone) < 7:
-            return jsonify({"error": "Valid phone number is required"}), 400
         if database.get_user_by_email(email):
             return jsonify({"error": "An account with this email already exists"}), 409
-        if database.get_user_by_phone(phone):
-            return jsonify({"error": "An account with this phone number already exists"}), 409
         pw_hash = generate_password_hash(password)
         try:
-            user_id = database.insert_user(full_name, email, phone, pw_hash)
+            user_id = database.insert_user(full_name, email, pw_hash, pw_hash)
         except sqlite3.IntegrityError:
             return jsonify({"error": "Could not create account"}), 409
         return (
@@ -132,17 +127,16 @@ def create_app() -> Flask:
                 "id": user["id"],
                 "email": user["email"],
                 "full_name": user["full_name"],
-                "phone": user["phone"],
             }
         )
 
-    @app.route("/api/auth/forgot/verify-phone", methods=["POST"])
-    def auth_forgot_verify_phone():
+    @app.route("/api/auth/forgot/verify-email", methods=["POST"])
+    def auth_forgot_verify_email():
         data = request.get_json() or {}
-        phone = auth_validation.normalize_phone(data.get("phone") or "")
-        if len(phone) < 7:
-            return jsonify({"error": "Enter a valid phone number"}), 400
-        user = database.get_user_by_phone(phone)
+        email = (data.get("email") or "").strip().lower()
+        if not auth_validation.is_valid_email(email):
+            return jsonify({"error": "Enter a valid email address"}), 400
+        user = database.get_user_by_email(email)
         if not user:
             return jsonify({"error": "Could not complete request"}), 404
         reset_token = auth_tokens.encode_reset_token(user["id"])
