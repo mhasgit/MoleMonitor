@@ -71,26 +71,21 @@ export function Dashboard({ userName: _userName, history, setHistory }: { userNa
 
   return (
     <Layout>
-      <div className="rounded-card shadow-card-elevated dark:shadow-card-elevated-dark px-6 py-4 mb-6 flex gap-4 items-start bg-yellow-200 bg-yellow-900/8 border border-yellow-300 dark:border-yellow-700/50">
-        <AlertTriangle className="w-7 h-7 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden />
+      <div className="rounded-card shadow-card-elevated shadow-card-elevated-light px-6 py-5 mb-6 flex gap-4 items-start bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-700/40">
+        <AlertTriangle className="w-7 h-7 shrink-0 mt-0.5 text-red-600 dark:text-red-300" aria-hidden />
         <div>
-          <p className="text-lg font-bold m-0 mb-1 text-amber-600 dark:text-amber-400">Important disclaimer</p>
-          <p className="m-0 text-base leading-relaxed text-text-primary font-normal">
+          <p className="text-2xl font-extrabold m-0 mb-2 text-red-600 dark:text-red-300">Important disclaimer</p>
+          <p className="m-0 text-lg font-bold leading-relaxed text-red-600 dark:text-red-300">
             MoleMonitor does not provide medical diagnosis. It only helps you store and compare images. If you have any concern about a mole or your skin health, please consult a healthcare professional.
           </p>
         </div>
       </div>
       <div className="w-full flex-1 min-h-0 flex flex-col gap-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
             <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
               <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Reports generated</p>
               <p className="text-sm text-text-muted mt-1 m-0">Mole pair comparisons saved to your history.</p>
               <p className="text-2xl font-bold text-text-primary mt-2 m-0">{reportCount}</p>
-            </Card>
-            <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
-              <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Overall changes</p>
-              <p className="text-sm text-text-muted mt-1 m-0">Comparisons where the system detected changes.</p>
-              <p className="text-2xl font-bold text-text-primary mt-2 m-0">{pairsWithChanges}</p>
             </Card>
             <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
               <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Total images uploaded</p>
@@ -98,26 +93,33 @@ export function Dashboard({ userName: _userName, history, setHistory }: { userNa
               <p className="text-2xl font-bold text-text-primary mt-2 m-0">{totalImages}</p>
             </Card>
           </div>
-          <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200 flex-1 min-h-0 flex flex-col">
-            <p className="text-base font-semibold uppercase tracking-wide m-0 shrink-0" style={{ color: '#22c55e' }}>Report dates</p>
-            <p className="text-sm text-text-muted mt-1 mb-2 m-0 shrink-0">Days when you saved comparison reports are highlighted in red.</p>
-            <div className="flex-1 min-h-0 flex flex-col">
-            <ReportDatesCalendar
-              reportDatesSet={reportDatesSet}
-              year={calendarYear}
-              month={calendarMonth}
-              onYearMonthChange={(y, m) => {
-                setCalendarYear(y)
-                setCalendarMonth(m)
-              }}
-            />
-            {reportDatesSet.size === 0 && (
-              <p className="m-0 mt-3 text-sm text-text-muted shrink-0">
-                No reports yet. Upload and compare images on the Compare Images page. Days with reports will show in red.
-              </p>
-            )}
-            </div>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+            <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200">
+              <p className="text-base font-semibold uppercase tracking-wide m-0" style={{ color: '#22c55e' }}>Overall changes</p>
+              <p className="text-sm text-text-muted mt-1 m-0">Comparisons where the system detected changes.</p>
+              <p className="text-2xl font-bold text-text-primary mt-2 m-0">{pairsWithChanges}</p>
+            </Card>
+            <Card className="!border-0 shadow-card-elevated hover:shadow-card-elevated-hover dark:shadow-card-elevated-dark dark:hover:shadow-card-elevated-hover-dark transition-shadow duration-200 flex-1 min-h-0 flex flex-col">
+              <p className="text-base font-semibold uppercase tracking-wide m-0 shrink-0" style={{ color: '#22c55e' }}>Report dates</p>
+              <p className="text-sm text-text-muted mt-1 mb-2 m-0 shrink-0">Days when you saved comparison reports are highlighted in red.</p>
+              <div className="flex-1 min-h-0 flex flex-col">
+              <ReportDatesCalendar
+                reportDatesSet={reportDatesSet}
+                year={calendarYear}
+                month={calendarMonth}
+                onYearMonthChange={(y, m) => {
+                  setCalendarYear(y)
+                  setCalendarMonth(m)
+                }}
+              />
+              {reportDatesSet.size === 0 && (
+                <p className="m-0 mt-3 text-sm text-text-muted shrink-0">
+                  No reports yet. Upload and compare images on the Compare Images page. Days with reports will show in red.
+                </p>
+              )}
+              </div>
+            </Card>
+          </div>
       </div>
     </Layout>
   )
