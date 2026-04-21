@@ -1,6 +1,18 @@
 """App configuration. Env overrides supported via os.environ."""
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load secrets for Flask: Vite does not inject client env into the API process.
+_api_dir = Path(__file__).resolve().parent
+_repo_root = _api_dir.parent
+# Precedence: .env.local then .env (first one wins because override=False).
+load_dotenv(_api_dir / ".env.local")
+load_dotenv(_api_dir / ".env", override=False)
+load_dotenv(_repo_root / "client" / ".env.local", override=False)
+load_dotenv(_repo_root / "client" / ".env", override=False)
 
 APP_TITLE = os.environ.get("APP_TITLE", "MoleMonitor")
 PAGE_ICON = "🕵️"
@@ -26,6 +38,22 @@ DB_PATH = os.environ.get("DB_PATH", "data/molemonitor.db")
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-change-in-production")
 JWT_ACCESS_EXPIRATION_SECONDS = int(os.environ.get("JWT_ACCESS_EXPIRATION_SECONDS", str(7 * 24 * 60 * 60)))
 JWT_RESET_EXPIRATION_SECONDS = int(os.environ.get("JWT_RESET_EXPIRATION_SECONDS", str(15 * 60)))
+# URL: api/.env SUPABASE_URL wins over client/.env VITE_SUPABASE_URL (see load order above).
+SUPABASE_URL = (
+    os.environ.get("SUPABASE_URL", "").strip()
+    or os.environ.get("VITE_SUPABASE_URL", "").strip()
+    or os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "").strip()
+)
+SUPABASE_SERVICE_ROLE_KEY = (
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    or os.environ.get("SUPABASE_KEY", "").strip()
+    or os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    or os.environ.get("VITE_SUPABASE_ANON_KEY", "").strip()
+    or os.environ.get("VITE_SUPABASE_PUBLISHABLE_KEY", "").strip()
+    or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "").strip()
+    or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "").strip()
+)
+PASSWORD_RESET_REDIRECT_URL = os.environ.get("PASSWORD_RESET_REDIRECT_URL", "http://localhost:5173/forgot-password")
 
 COMPARE_ALGO_VERSION = "phase1_heuristic_v1"
 

@@ -12,6 +12,7 @@ import {
   HistoryPageWithModal,
   Instructions,
   About,
+  Landing,
   Login,
   Register,
   ForgotPassword,
@@ -90,7 +91,7 @@ export default function App() {
           <Route path="/login" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={auth.login} />} />
           <Route path="/register" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
           <Route path="/forgot-password" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
-          <Route path="/" element={auth.authenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+          <Route path="/" element={<Landing authenticated={auth.authenticated} />} />
           <Route path="/dashboard" element={auth.authenticated ? <Dashboard userName={auth.userName} history={history} setHistory={setHistory} /> : <Navigate to="/login" replace />} />
           <Route path="/home" element={auth.authenticated ? <Home /> : <Navigate to="/login" replace />} />
           <Route path="/history" element={auth.authenticated ? <HistoryPageWithModal history={history} setHistory={setHistory} reportModal={reportModal} setReportModal={setReportModal} /> : <Navigate to="/login" replace />} />

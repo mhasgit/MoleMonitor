@@ -160,6 +160,7 @@ export function Register() {
 
 export function ForgotPassword() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [step, setStep] = useState<'email' | 'reset'>('email')
   const [email, setEmail] = useState('')
   const [resetToken, setResetToken] = useState<string | null>(null)
@@ -167,6 +168,36 @@ export function ForgotPassword() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [warn, setWarn] = useState('')
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    const raw = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash
+    if (raw) {
+      const hp = new URLSearchParams(raw)
+      const err = hp.get('error')
+      const errCode = hp.get('error_code')
+      if (err === 'access_denied' || errCode === 'otp_expired') {
+        setWarn(
+          'This email link has expired or was already used. Request a new reset link and open it soon. ' +
+            'If the address bar shows port 3000 but you run MoleMonitor with npm start, set Supabase Site URL and redirect URLs to http://localhost:5173 (see API README).'
+        )
+        setStep('email')
+        setResetToken(null)
+        setSuccess(false)
+        window.history.replaceState(null, '', `${location.pathname}${location.search}`)
+        return
+      }
+    }
+    const params = new URLSearchParams(location.search)
+    const token = params.get('reset_token')
+    if (token) {
+      setResetToken(token)
+      setStep('reset')
+      setWarn('')
+    } else {
+      setResetToken(null)
+      setStep('email')
+    }
+  }, [location.search, location.hash])
 
   const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -176,12 +207,11 @@ export function ForgotPassword() {
       return
     }
     try {
-      const { reset_token } = await verifyEmailForReset(trimmedEmail)
-      setResetToken(reset_token)
-      setStep('reset')
+      await verifyEmailForReset(trimmedEmail)
       setWarn('')
-    } catch {
-      setWarn('Could not complete request. Check your email address.')
+      setSuccess(true)
+    } catch (err) {
+      setWarn(err instanceof Error ? err.message : 'Could not send reset link. Please try again.')
     }
   }
 
@@ -226,8 +256,9 @@ export function ForgotPassword() {
             <Label>Email address</Label>
             <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" autoComplete="email" />
             {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+            {success && <p className="text-semantic-success font-medium mb-2">If your email exists in our system, a reset link has been sent.</p>}
             <div className="flex flex-col gap-2 mt-3">
-              <Button type="submit">Continue</Button>
+              <Button type="submit">Send reset link</Button>
               <Button variant="secondary" type="button" onClick={() => navigate('/login')}>
                 Back to Log in
               </Button>
@@ -246,7 +277,7 @@ export function ForgotPassword() {
               <Button type="submit" disabled={success}>
                 Reset password
               </Button>
-              <Button variant="secondary" type="button" onClick={() => { setStep('email'); setResetToken(null); setWarn('') }}>
+              <Button variant="secondary" type="button" onClick={() => { navigate('/forgot-password', { replace: true }); setWarn(''); setSuccess(false) }}>
                 Back
               </Button>
               <Button variant="ghost" type="button" onClick={() => navigate('/login')}>

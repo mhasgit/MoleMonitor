@@ -68,14 +68,13 @@ export async function getMe(): Promise<AuthUser> {
   return r.json()
 }
 
-export async function verifyEmailForReset(email: string): Promise<{ reset_token: string }> {
+export async function verifyEmailForReset(email: string): Promise<void> {
   const r = await fetch(`${API}/auth/forgot/verify-email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
   if (!r.ok) throw new Error(await parseError(r))
-  return r.json()
 }
 
 export async function resetPasswordWithToken(resetToken: string, newPassword: string): Promise<void> {

@@ -9,6 +9,8 @@ cd client
 npm install
 ```
 
+Copy `client/.env.example` to `client/.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` if you use the Supabase browser client (`src/supabase.ts`).
+
 ## Run
 
 **Run client and API together (recommended):**

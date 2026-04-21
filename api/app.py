@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 from io import BytesIO
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import numpy as np
 from flask import Flask, jsonify, request, send_from_directory
@@ -15,6 +16,7 @@ import auth_tokens
 import auth_validation
 import config
 import database
+import supabase_mailer
 from compare import run_pipeline
 from compare.reporting import snapshot_to_dict
 from utils import images
@@ -61,6 +63,13 @@ def create_app() -> Flask:
         Image.fromarray(arr).save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode("utf-8")
 
+    def _build_reset_redirect_url(reset_token: str) -> str:
+        base = config.PASSWORD_RESET_REDIRECT_URL
+        parts = urlsplit(base)
+        q = dict(parse_qsl(parts.query, keep_blank_values=True))
+        q["reset_token"] = reset_token
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(q), parts.fragment))
+
     @app.route("/api/health")
     def health():
         return jsonify({"status": "ok"})
@@ -86,6 +95,11 @@ def create_app() -> Flask:
             user_id = database.insert_user(full_name, email, pw_hash, pw_hash)
         except sqlite3.IntegrityError:
             return jsonify({"error": "Could not create account"}), 409
+        # Keep Supabase Auth in sync so recovery emails can be sent later.
+        try:
+            supabase_mailer.ensure_auth_user(email, password)
+        except RuntimeError as exc:
+            app.logger.warning("Supabase auth user sync failed for %s: %s", email, exc)
         return (
             jsonify({"ok": True, "message": "Account created."}),
             201,
@@ -137,10 +151,29 @@ def create_app() -> Flask:
         if not auth_validation.is_valid_email(email):
             return jsonify({"error": "Enter a valid email address"}), 400
         user = database.get_user_by_email(email)
-        if not user:
-            return jsonify({"error": "Could not complete request"}), 404
-        reset_token = auth_tokens.encode_reset_token(user["id"])
-        return jsonify({"reset_token": reset_token})
+        if user:
+            reset_token = auth_tokens.encode_reset_token(user["id"])
+            redirect_url = _build_reset_redirect_url(reset_token)
+            try:
+                # Backfill Supabase Auth users for accounts created before sync was added.
+                supabase_mailer.ensure_auth_user(email)
+                supabase_mailer.send_password_reset_email(email, redirect_url)
+            except RuntimeError as exc:
+                msg = str(exc).lower()
+                if "429" in str(exc) or "over_email_send_rate_limit" in msg:
+                    app.logger.warning("Password reset rate limited for %s", email)
+                    return jsonify(
+                        {
+                            "error": (
+                                "Too many reset emails were sent from this project. "
+                                "Wait several minutes (or up to an hour on free tiers), then try again."
+                            )
+                        }
+                    ), 429
+                app.logger.exception("Password reset email send failed for %s: %s", email, exc)
+                return jsonify({"error": "Could not send reset email. Please try again."}), 500
+        # Use neutral messaging to avoid account enumeration.
+        return jsonify({"ok": True, "message": "If an account exists for this email, a reset link has been sent."})
 
     @app.route("/api/auth/forgot/reset", methods=["POST"])
     def auth_forgot_reset():

@@ -46,3 +46,12 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# JS / tooling artifacts (e.g. if npm runs from api/)
+node_modules/
+dist/
+dist-ssr/
+lerna-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
