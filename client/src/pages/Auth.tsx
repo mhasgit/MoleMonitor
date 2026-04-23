@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Label, Input, Button } from '../components'
 import type { AuthUser } from '../authApi'
-import { loginUser, registerUser, resetPasswordWithToken, verifyPhoneForReset } from '../authApi'
-import { isValidEmail, isValidPassword, normalizePhone } from '../utils/validation'
+import { loginUser, registerUser, resetPasswordWithToken, verifyEmailForReset } from '../authApi'
+import { isValidEmail, isValidPassword } from '../utils/validation'
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -99,7 +99,6 @@ export function Register() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [phone, setPhone] = useState('')
   const [warn, setWarn] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,10 +106,9 @@ export function Register() {
     const name = fullName.trim()
     const em = email.trim()
     const pw = password
-    const ph = normalizePhone(phone)
 
-    if (!name || !em || !pw || !phone.trim()) {
-      setWarn('Full name, email, password, and phone are required.')
+    if (!name || !em || !pw) {
+      setWarn('Full name, email, and password are required.')
       return
     }
     if (!isValidEmail(em)) {
@@ -121,17 +119,11 @@ export function Register() {
       setWarn('Password must be more than 6 characters and include a special character.')
       return
     }
-    if (ph.length < 7) {
-      setWarn('Please enter a valid phone number (at least 7 digits).')
-      return
-    }
-
     try {
       await registerUser({
         full_name: name,
         email: em,
         password: pw,
-        phone: phone.trim(),
       })
       navigate('/login', { replace: true, state: { registered: true } })
     } catch (err) {
@@ -151,8 +143,6 @@ export function Register() {
           <Input type="text" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="mb-4" autoComplete="name" />
           <Label>Email address</Label>
           <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" autoComplete="email" />
-          <Label>Phone number</Label>
-          <Input type="tel" placeholder="Used for password recovery" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-4" autoComplete="tel" />
           <Label>Password</Label>
           <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" autoComplete="new-password" />
           {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
@@ -170,28 +160,58 @@ export function Register() {
 
 export function ForgotPassword() {
   const navigate = useNavigate()
-  const [step, setStep] = useState<'phone' | 'reset'>('phone')
-  const [phone, setPhone] = useState('')
+  const location = useLocation()
+  const [step, setStep] = useState<'email' | 'reset'>('email')
+  const [email, setEmail] = useState('')
   const [resetToken, setResetToken] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [warn, setWarn] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const handleVerifyPhone = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const raw = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash
+    if (raw) {
+      const hp = new URLSearchParams(raw)
+      const err = hp.get('error')
+      const errCode = hp.get('error_code')
+      if (err === 'access_denied' || errCode === 'otp_expired') {
+        setWarn(
+          'This email link has expired or was already used. Request a new reset link and open it soon. ' +
+            'If the address bar shows port 3000 but you run MoleMonitor with npm start, set Supabase Site URL and redirect URLs to http://localhost:5173 (see API README).'
+        )
+        setStep('email')
+        setResetToken(null)
+        setSuccess(false)
+        window.history.replaceState(null, '', `${location.pathname}${location.search}`)
+        return
+      }
+    }
+    const params = new URLSearchParams(location.search)
+    const token = params.get('reset_token')
+    if (token) {
+      setResetToken(token)
+      setStep('reset')
+      setWarn('')
+    } else {
+      setResetToken(null)
+      setStep('email')
+    }
+  }, [location.search, location.hash])
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
     e.preventDefault()
-    const ph = normalizePhone(phone)
-    if (ph.length < 7) {
-      setWarn('Please enter a valid phone number.')
+    const trimmedEmail = email.trim()
+    if (!isValidEmail(trimmedEmail)) {
+      setWarn('Please enter a valid email address.')
       return
     }
     try {
-      const { reset_token } = await verifyPhoneForReset(phone.trim())
-      setResetToken(reset_token)
-      setStep('reset')
+      await verifyEmailForReset(trimmedEmail)
       setWarn('')
-    } catch {
-      setWarn('Could not complete request. Check your phone number.')
+      setSuccess(true)
+    } catch (err) {
+      setWarn(err instanceof Error ? err.message : 'Could not send reset link. Please try again.')
     }
   }
 
@@ -230,14 +250,15 @@ export function ForgotPassword() {
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
           <h3 className="text-lg font-medium text-text-primary mb-6">Forgot your password?</h3>
         </div>
-        {step === 'phone' ? (
-          <form className="w-full" onSubmit={handleVerifyPhone}>
-            <p className="text-sm text-text-muted mb-4 m-0">Enter the phone number you used when registering.</p>
-            <Label>Phone number</Label>
-            <Input type="tel" placeholder="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-4" autoComplete="tel" />
+        {step === 'email' ? (
+          <form className="w-full" onSubmit={handleVerifyEmail}>
+            <p className="text-sm text-text-muted mb-4 m-0">Enter the email address you used when registering.</p>
+            <Label>Email address</Label>
+            <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" autoComplete="email" />
             {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+            {success && <p className="text-semantic-success font-medium mb-2">If your email exists in our system, a reset link has been sent.</p>}
             <div className="flex flex-col gap-2 mt-3">
-              <Button type="submit">Continue</Button>
+              <Button type="submit">Send reset link</Button>
               <Button variant="secondary" type="button" onClick={() => navigate('/login')}>
                 Back to Log in
               </Button>
@@ -256,7 +277,7 @@ export function ForgotPassword() {
               <Button type="submit" disabled={success}>
                 Reset password
               </Button>
-              <Button variant="secondary" type="button" onClick={() => { setStep('phone'); setResetToken(null); setWarn('') }}>
+              <Button variant="secondary" type="button" onClick={() => { navigate('/forgot-password', { replace: true }); setWarn(''); setSuccess(false) }}>
                 Back
               </Button>
               <Button variant="ghost" type="button" onClick={() => navigate('/login')}>

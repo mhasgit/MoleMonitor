@@ -12,6 +12,7 @@ from compare.decision import decide
 from compare.measure import compare_metrics, measure_single
 from compare.preprocess import preprocess_pair
 from compare.reporting import ReportSnapshot, build_snapshot
+from compare.scale import calibrate_px_per_mm
 from compare.segment import get_segmenter
 
 
@@ -48,7 +49,23 @@ def run_pipeline(
     mask_b, seg_quality_b = segmenter(b)
     m_a = measure_single(a, mask_a)
     m_b = measure_single(b, mask_b)
-    comparison = compare_metrics(m_a, m_b, scale_mm=scale_mm)
+    try:
+        auto_px_per_mm_a, scale_diag_a = calibrate_px_per_mm(a)
+    except Exception as exc:
+        auto_px_per_mm_a, scale_diag_a = None, {"coin_detected": False, "reason": f"scale_error:{exc}"}
+    try:
+        auto_px_per_mm_b, scale_diag_b = calibrate_px_per_mm(b)
+    except Exception as exc:
+        auto_px_per_mm_b, scale_diag_b = None, {"coin_detected": False, "reason": f"scale_error:{exc}"}
+    manual_px_per_mm = scale_mm if scale_mm is not None and scale_mm > 0 else None
+    detected_scales = [x for x in (auto_px_per_mm_a, auto_px_per_mm_b) if x is not None]
+    if detected_scales:
+        px_per_mm = float(np.median(np.array(detected_scales)))
+        scale_source = "coin_detected"
+    else:
+        px_per_mm = manual_px_per_mm
+        scale_source = "manual" if manual_px_per_mm else "none"
+    comparison = compare_metrics(m_a, m_b, px_per_mm=px_per_mm)
     metrics = {
         "image_a": m_a,
         "image_b": m_b,
@@ -58,6 +75,13 @@ def run_pipeline(
         "irregularity_delta": comparison["irregularity_delta"],
         "color_deltaE": comparison["color_deltaE"],
         "scale_available": comparison["scale_available"],
+        "px_per_mm": comparison.get("px_per_mm"),
+        "scale_source": scale_source,
+        "scale_diagnostics": {
+            "image_a": scale_diag_a,
+            "image_b": scale_diag_b,
+            "manual_px_per_mm": manual_px_per_mm,
+        },
     }
     decision = decide(
         metrics,

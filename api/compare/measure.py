@@ -70,7 +70,7 @@ def measure_single(rgb: np.ndarray, mask: np.ndarray) -> dict[str, Any]:
 def compare_metrics(
     m_a: dict[str, Any],
     m_b: dict[str, Any],
-    scale_mm: float | None = None,
+    px_per_mm: float | None = None,
 ) -> dict[str, Any]:
     """Compute comparison metrics: area_change_percent, diam_change_px, diam_change_mm, etc."""
     area_a = m_a.get("area_px") or 0
@@ -83,11 +83,12 @@ def compare_metrics(
     diam_b = m_b.get("diam_px") or 0.0
     diam_change_px = diam_b - diam_a
     diam_change_mm: float | None = None
-    if scale_mm is not None and scale_mm > 0 and diam_a > 0:
-        px_per_mm = scale_mm
+    area_change_mm2: float | None = None
+    if px_per_mm is not None and px_per_mm > 0 and diam_a > 0:
         diam_a_mm = diam_a / px_per_mm
         diam_b_mm = diam_b / px_per_mm
         diam_change_mm = diam_b_mm - diam_a_mm
+        area_change_mm2 = ((area_b - area_a) / (px_per_mm ** 2)) if area_a > 0 or area_b > 0 else 0.0
     irr_a = m_a.get("irregularity") or 0.0
     irr_b = m_b.get("irregularity") or 0.0
     irregularity_delta = irr_b - irr_a
@@ -99,10 +100,15 @@ def compare_metrics(
         "diam_change_px": diam_change_px,
         "irregularity_delta": irregularity_delta,
         "color_deltaE": color_deltaE,
-        "scale_available": scale_mm is not None and scale_mm > 0,
+        "scale_available": px_per_mm is not None and px_per_mm > 0,
+        "px_per_mm": px_per_mm if px_per_mm is not None and px_per_mm > 0 else None,
     }
     if diam_change_mm is not None:
         out["diam_change_mm"] = diam_change_mm
     else:
         out["diam_change_mm"] = None
+    if area_change_mm2 is not None:
+        out["area_change_mm2"] = area_change_mm2
+    else:
+        out["area_change_mm2"] = None
     return out

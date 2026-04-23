@@ -28,9 +28,14 @@ def build_message(decision: Decision, metrics: dict[str, Any]) -> str:
     """Build user-facing message from decision and metrics."""
     parts = []
     scale_available = metrics.get("scale_available", False)
+    seg_a = (metrics.get("image_a") or {}).get("invalid_mask", False)
+    seg_b = (metrics.get("image_b") or {}).get("invalid_mask", False)
     if decision.confidence == Confidence.LOW:
-        parts.append("Results are uncertain due to image quality or missing scale.")
-        parts.append("We recommend retaking photos with consistent lighting and, if possible, a reference object for scale.")
+        parts.append("Results are uncertain due to image or segmentation quality.")
+        if seg_a or seg_b:
+            parts.append("At least one image had weak mole segmentation; retake with sharper focus and tighter framing.")
+        else:
+            parts.append("We recommend retaking photos with consistent lighting and, if possible, a visible 5p coin.")
         parts.append("")
     else:
         if decision.action == Action.NONE:
@@ -39,38 +44,12 @@ def build_message(decision: Decision, metrics: dict[str, Any]) -> str:
             parts.append(decision.summary_reason)
         else:
             parts.append(decision.summary_reason)
-        parts.append("")
-        parts.append("In simple terms:")
-        triggered = set(decision.triggered_rules or [])
-        size_triggered = "area_change_percent" in triggered or "diameter_increase_mm" in triggered
-        if size_triggered:
-            if scale_available and metrics.get("diam_change_mm") is not None:
-                d_mm = metrics["diam_change_mm"]
-                if d_mm > 0:
-                    parts.append("• Size: the newer image shows a slightly larger area than the older one.")
-                else:
-                    parts.append("• Size: the newer image shows a slightly smaller area than the older one.")
-            else:
-                area_ch = metrics.get("area_change_percent") or 0
-                if area_ch > 0:
-                    parts.append("• Size: the newer image shows a larger area than the older one. (Scale not available for exact measurements.)")
-                else:
-                    parts.append("• Size: the newer image shows a smaller area than the older one. (Scale not available for exact measurements.)")
-        else:
-            parts.append("• Size: about the same.")
-        if "color_deltaE" in triggered:
-            delta_e = metrics.get("color_deltaE") or 0
-            if delta_e >= 6:
-                parts.append("• Color: a noticeable color difference between the two images.")
-            else:
-                parts.append("• Color: a slight color difference between the two images.")
-        else:
-            parts.append("• Color: no notable change.")
-        if "irregularity_delta" in triggered:
-            parts.append("• Shape: the outline appears somewhat different between the two images.")
-        else:
-            parts.append("• Shape: similar in both images.")
-        parts.append("")
+    diam_change_mm = metrics.get("diam_change_mm")
+    if isinstance(diam_change_mm, (int, float)):
+        parts.append(f"Measured diameter change: {diam_change_mm:+.2f} mm")
+    elif not scale_available:
+        parts.append("Measured diameter change: unavailable (scale not detected)")
+    parts.append("")
     parts.append(DISCLAIMER)
     return "\n".join(parts)
 

@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 from io import BytesIO
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import numpy as np
 from flask import Flask, jsonify, request, send_from_directory
@@ -15,6 +16,7 @@ import auth_tokens
 import auth_validation
 import config
 import database
+import supabase_mailer
 from compare import run_pipeline
 from compare.reporting import snapshot_to_dict
 from utils import images
@@ -61,6 +63,13 @@ def create_app() -> Flask:
         Image.fromarray(arr).save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode("utf-8")
 
+    def _build_reset_redirect_url(reset_token: str) -> str:
+        base = config.PASSWORD_RESET_REDIRECT_URL
+        parts = urlsplit(base)
+        q = dict(parse_qsl(parts.query, keep_blank_values=True))
+        q["reset_token"] = reset_token
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(q), parts.fragment))
+
     @app.route("/api/health")
     def health():
         return jsonify({"status": "ok"})
@@ -71,7 +80,6 @@ def create_app() -> Flask:
         full_name = (data.get("full_name") or "").strip()
         email = (data.get("email") or "").strip()
         password = data.get("password") or ""
-        phone = auth_validation.normalize_phone(data.get("phone") or "")
         if not full_name:
             return jsonify({"error": "Full name is required"}), 400
         if not auth_validation.is_valid_email(email):
@@ -80,17 +88,18 @@ def create_app() -> Flask:
             return jsonify(
                 {"error": "Password must be more than 6 characters and include a special character"}
             ), 400
-        if len(phone) < 7:
-            return jsonify({"error": "Valid phone number is required"}), 400
         if database.get_user_by_email(email):
             return jsonify({"error": "An account with this email already exists"}), 409
-        if database.get_user_by_phone(phone):
-            return jsonify({"error": "An account with this phone number already exists"}), 409
         pw_hash = generate_password_hash(password)
         try:
-            user_id = database.insert_user(full_name, email, phone, pw_hash)
+            user_id = database.insert_user(full_name, email, pw_hash, pw_hash)
         except sqlite3.IntegrityError:
             return jsonify({"error": "Could not create account"}), 409
+        # Keep Supabase Auth in sync so recovery emails can be sent later.
+        try:
+            supabase_mailer.ensure_auth_user(email, password)
+        except RuntimeError as exc:
+            app.logger.warning("Supabase auth user sync failed for %s: %s", email, exc)
         return (
             jsonify({"ok": True, "message": "Account created."}),
             201,
@@ -132,21 +141,39 @@ def create_app() -> Flask:
                 "id": user["id"],
                 "email": user["email"],
                 "full_name": user["full_name"],
-                "phone": user["phone"],
             }
         )
 
-    @app.route("/api/auth/forgot/verify-phone", methods=["POST"])
-    def auth_forgot_verify_phone():
+    @app.route("/api/auth/forgot/verify-email", methods=["POST"])
+    def auth_forgot_verify_email():
         data = request.get_json() or {}
-        phone = auth_validation.normalize_phone(data.get("phone") or "")
-        if len(phone) < 7:
-            return jsonify({"error": "Enter a valid phone number"}), 400
-        user = database.get_user_by_phone(phone)
-        if not user:
-            return jsonify({"error": "Could not complete request"}), 404
-        reset_token = auth_tokens.encode_reset_token(user["id"])
-        return jsonify({"reset_token": reset_token})
+        email = (data.get("email") or "").strip().lower()
+        if not auth_validation.is_valid_email(email):
+            return jsonify({"error": "Enter a valid email address"}), 400
+        user = database.get_user_by_email(email)
+        if user:
+            reset_token = auth_tokens.encode_reset_token(user["id"])
+            redirect_url = _build_reset_redirect_url(reset_token)
+            try:
+                # Backfill Supabase Auth users for accounts created before sync was added.
+                supabase_mailer.ensure_auth_user(email)
+                supabase_mailer.send_password_reset_email(email, redirect_url)
+            except RuntimeError as exc:
+                msg = str(exc).lower()
+                if "429" in str(exc) or "over_email_send_rate_limit" in msg:
+                    app.logger.warning("Password reset rate limited for %s", email)
+                    return jsonify(
+                        {
+                            "error": (
+                                "Too many reset emails were sent from this project. "
+                                "Wait several minutes (or up to an hour on free tiers), then try again."
+                            )
+                        }
+                    ), 429
+                app.logger.exception("Password reset email send failed for %s: %s", email, exc)
+                return jsonify({"error": "Could not send reset email. Please try again."}), 500
+        # Use neutral messaging to avoid account enumeration.
+        return jsonify({"ok": True, "message": "If an account exists for this email, a reset link has been sent."})
 
     @app.route("/api/auth/forgot/reset", methods=["POST"])
     def auth_forgot_reset():
@@ -239,20 +266,22 @@ def create_app() -> Flask:
         if img_a is None or img_b is None:
             return jsonify({"error": "Both image_a and image_b are required"}), 400
         try:
-            scale_mm = request.form.get("scale_mm", type=float)
-            if scale_mm is not None and scale_mm <= 0:
-                scale_mm = None
+            px_per_mm = request.form.get("px_per_mm", type=float)
+            if px_per_mm is None:
+                px_per_mm = request.form.get("scale_mm", type=float)
+            if px_per_mm is not None and px_per_mm <= 0:
+                px_per_mm = None
             use_clahe = request.form.get("use_clahe", "").lower() in ("1", "true", "yes")
             blur_kernel = request.form.get("blur_kernel_size", 0, type=int) or 0
             if blur_kernel and blur_kernel % 2 == 0:
                 blur_kernel = max(1, blur_kernel - 1)
         except (TypeError, ValueError):
-            scale_mm, use_clahe, blur_kernel = None, False, 0
+            px_per_mm, use_clahe, blur_kernel = None, False, 0
         try:
             result = run_pipeline(
                 img_a,
                 img_b,
-                scale_mm=scale_mm,
+                scale_mm=px_per_mm,
                 use_clahe=use_clahe,
                 blur_kernel_size=blur_kernel or 0,
             )
