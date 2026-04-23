@@ -1,77 +1,91 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
+import { CheckCircle2, Shield } from 'lucide-react'
 import { Label, Input, Button } from '../components'
 import type { AuthUser } from '../authApi'
 import { loginUser, registerUser, resetPasswordWithToken, verifyEmailForReset } from '../authApi'
 import { isValidEmail, isValidPassword } from '../utils/validation'
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate()
+
   return (
-    <div className="flex min-h-screen bg-surface">
-      <div className="flex-[0_0_50%] w-1/2 min-h-screen bg-[#f3f6fc] flex items-start justify-center px-12 pt-10 pb-8">
+    <div className="relative min-h-screen overflow-hidden bg-surface">
+      <div
+        className="pointer-events-none absolute inset-0 bg-right bg-no-repeat bg-contain opacity-100"
+        style={{ backgroundImage: 'url("/log_img.png")' }}
+        aria-hidden
+      />
+      <div className="absolute inset-0 bg-surface/75" aria-hidden />
+      <header className="w-full border-b border-border bg-card/90 backdrop-blur">
+        <div className="relative z-10 mx-auto w-full max-w-[90rem] px-6 py-4 flex items-center justify-between">
+          <p className="m-0 text-xl font-bold tracking-tight text-text-primary">MoleMonitor</p>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" onClick={() => navigate('/login')}>
+              Login
+            </Button>
+            <Button onClick={() => navigate('/register')}>Register</Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="relative z-10 w-full px-6 py-12 md:py-20">
+      <div className="relative mx-auto flex w-full max-w-[90rem] min-h-[72vh] overflow-hidden rounded-2xl border border-border/70 bg-card/65 backdrop-blur-sm">
+      <div className="flex-[0_0_50%] w-1/2 border-r border-border flex items-start justify-center px-12 pt-10 pb-8">
   <div className="w-full max-w-[620px]">
-    <h2 className="text-[4.5rem] leading-[1.1] font-semibold text-[#25345d] mb-6">
+    <h2 className="text-[4.5rem] leading-[1.1] font-semibold text-text-primary mb-6">
       Monitor changes in your skin safely over time
     </h2>
 
-    <p className="text-[1.35rem] leading-9 text-[#3f4d72] mb-10">
+    <p className="text-[1.35rem] leading-9 text-text-muted mb-10">
       Upload photos, compare changes, and keep a simple history.
     </p>
 
     <div className="space-y-4 mb-3">
       <div className="flex items-start gap-4">
-        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dbe7ff] text-[#6b8fe8] text-lg font-bold">
-          ✓
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckCircle2 className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[1.2rem] font-semibold text-[#25345d]">Easy photo comparison</p>
-          <p className="text-[1rem] leading-7 text-[#5a6785]">Compare mole photos over time in one place.</p>
+          <p className="text-[1.2rem] font-semibold text-text-primary">Easy photo comparison</p>
+          <p className="text-[1rem] leading-7 text-text-muted">Compare mole photos over time in one place.</p>
         </div>
       </div>
 
       <div className="flex items-start gap-4">
-        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dbe7ff] text-[#6b8fe8] text-lg font-bold">
-          ✓
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckCircle2 className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[1.2rem] font-semibold text-[#25345d]">Clear and simple reports</p>
-          <p className="text-[1rem] leading-7 text-[#5a6785]">Easy-to-read summaries of visible changes.</p>
+          <p className="text-[1.2rem] font-semibold text-text-primary">Clear and simple reports</p>
+          <p className="text-[1rem] leading-7 text-text-muted">Easy-to-read summaries of visible changes.</p>
         </div>
       </div>
 
       <div className="flex items-start gap-4">
-        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dbe7ff] text-[#6b8fe8] text-lg font-bold">
-          ✓
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <CheckCircle2 className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[1.2rem] font-semibold text-[#25345d]">Private &amp; secure</p>
-          <p className="text-[1rem] leading-7 text-[#5a6785]">Your account helps keep your photo history protected.</p>
+          <p className="text-[1.2rem] font-semibold text-text-primary">Private &amp; secure</p>
+          <p className="text-[1rem] leading-7 text-text-muted">Your account helps keep your photo history protected.</p>
         </div>
       </div>
     </div>
 
-    <div className="flex justify-end -mt-6 mb-2 pr-8">
-  <img
-    src="/log_img.png"
-    alt="Illustration of mole photo comparison on a tablet"
-    className="w-full max-w-[340px] h-auto object-contain"
-    onError={(e) => {
-      ;(e.target as HTMLImageElement).style.display = 'none'
-    }}
-  />
-</div>
-
-   <div className="rounded-2xl border border-[#d7dfef] bg-white px-5 py-3 shadow-sm max-w-[540px] -mt-2">
-  <p className="text-[0.95rem] leading-6 text-[#52607d]">
+   <div className="rounded-2xl border border-semantic-error/40 bg-semantic-error/10 px-5 py-3 shadow-sm max-w-[540px] mt-24">
+  <p className="text-[1.2rem] leading-8 text-text-primary font-bold">
     This tool is for monitoring visible changes only. It does not provide medical advice or a medical diagnosis.
   </p>
 </div>
   </div>
 </div>
 
-      <div className="flex-[0_0_50%] w-1/2 min-w-[280px] p-8 flex flex-col justify-center bg-card border-l border-border box-border">
+      <div className="flex-[0_0_50%] w-1/2 min-w-[280px] p-8 flex flex-col justify-center box-border">
         {children}
+      </div>
+      </div>
       </div>
     </div>
   )
@@ -118,11 +132,16 @@ export function Login({
   return (
    <AuthLayout>
   <div className="w-full max-w-[340px] self-center">
+    <div className="mb-4">
+      <Button variant="ghost" type="button" onClick={() => navigate('/')}>
+        ← Back to Home
+      </Button>
+    </div>
     <div className="text-center">
-      <h1 className="text-[2.1rem] font-semibold tracking-tight text-[#25345d] mb-2">
+      <h1 className="text-[2.1rem] font-semibold tracking-tight text-text-primary mb-2">
         Welcome to Mole Monitor
       </h1>
-      <h3 className="text-[1.35rem] font-medium text-[#25345d] mb-8">
+      <h3 className="text-[1.35rem] font-medium text-text-primary mb-8">
         Log in to view your mole history
       </h3>
     </div>
@@ -163,17 +182,10 @@ export function Login({
           </Button>
         </div>
 
-        <div className="mt-2 rounded-xl border border-[#d8deea] bg-[#f4f6fb] px-4 py-3 flex items-center justify-center gap-2">
-          <span className="text-[#64739a]">🔒</span>
-          <p className="m-0 text-sm text-[#4f5d7a] font-medium">
+        <div className="mt-2 rounded-xl border border-border bg-hover-surface px-4 py-3 flex items-center justify-center gap-3">
+          <Shield className="h-5 w-5 text-accent shrink-0" />
+          <p className="m-0 text-base text-text-primary font-semibold leading-none">
             Your data is private and secure
-          </p>
-        </div>
-
-        <div className="flex items-start justify-center gap-2 mt-1">
-          <span className="text-[#d9a441] text-sm">⚠</span>
-          <p className="m-0 text-sm text-[#5c6475]">
-            This tool does not provide medical diagnosis.
           </p>
         </div>
       </div>
@@ -223,6 +235,11 @@ export function Register() {
   return (
     <AuthLayout>
       <div className="w-full max-w-[280px] self-center">
+        <div className="mb-3">
+          <Button variant="ghost" type="button" onClick={() => navigate('/')}>
+            ← Back to Home
+          </Button>
+        </div>
         <div className="text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
           <h3 className="text-lg font-medium text-text-primary mb-6">Create account</h3>
@@ -335,6 +352,11 @@ export function ForgotPassword() {
   return (
     <AuthLayout>
       <div className="w-full max-w-[280px] self-center">
+        <div className="mb-3">
+          <Button variant="ghost" type="button" onClick={() => navigate('/')}>
+            ← Back to Home
+          </Button>
+        </div>
         <div className="text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">MoleMonitor</h1>
           <h3 className="text-lg font-medium text-text-primary mb-6">Forgot your password?</h3>
