@@ -26,15 +26,6 @@ export function Instructions() {
           Follow these tips to help the system compare your mole images accurately.
         </p>
 
-
-        <div className="w-full rounded-xl overflow-hidden border border-border">
-          <video
-            src={demoVideo}
-            controls
-            className="w-full h-auto"
-          />
-        </div>
-
         <Card className="p-6 sm:p-8">
           <ul className="m-0 p-0 list-none space-y-0">
             {TIPS.map((tip, i) => {
@@ -63,6 +54,28 @@ export function Instructions() {
             })}
           </ul>
         </Card>
+
+        <section className="mx-auto w-full max-w-3xl">
+          <div className="rounded-2xl border border-border bg-gradient-to-b from-background to-accent/5 p-4 shadow-sm sm:p-5">
+            <p className="m-0 text-sm font-semibold uppercase tracking-wide text-accent">
+              Video guide
+            </p>
+            <h2 className="m-0 mt-1 text-lg font-semibold text-text-primary">
+              How to Take a Good Mole Photo
+            </h2>
+            <p className="m-0 mt-1 text-sm text-text-muted">
+              Watch this quick demo before uploading, so your photos are clearer and easier to compare over time.
+            </p>
+
+            <div className="mt-4 overflow-hidden rounded-xl border border-border/80 bg-black shadow-inner">
+              <video
+                src={demoVideo}
+                controls
+                className="aspect-video w-full h-auto"
+              />
+            </div>
+          </div>
+        </section>
 
         <div className="flex flex-col sm:flex-row gap-4 pt-2">
           <Button onClick={() => navigate('/home')}>
