@@ -9,18 +9,67 @@ import { isValidEmail, isValidPassword } from '../utils/validation'
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-surface">
-      <div className="flex-[0_0_50%] w-1/2 relative min-h-screen overflow-hidden bg-surface">
-        <img src="/login.png" alt="" className="absolute inset-0 w-full h-full object-cover block" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/75 to-black/95 flex flex-col justify-end p-8 pb-10">
-          <h2 className="text-2xl font-semibold text-white mb-2">Track mole changes over time</h2>
-          <p className="text-white/90 text-sm mb-5">Upload pairs of photos, compare them, and keep a simple history in one place.</p>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-block text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-accent/20 text-white">Photo comparison</span>
-            <span className="inline-block text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-accent/20 text-white">Simple reports</span>
-            <span className="inline-block text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-accent/20 text-white">Your data stays private</span>
-          </div>
+      <div className="flex-[0_0_50%] w-1/2 min-h-screen bg-[#f3f6fc] flex items-start justify-center px-12 pt-10 pb-8">
+  <div className="w-full max-w-[620px]">
+    <h2 className="text-[4.5rem] leading-[1.1] font-semibold text-[#25345d] mb-6">
+      Monitor changes in your skin safely over time
+    </h2>
+
+    <p className="text-[1.35rem] leading-9 text-[#3f4d72] mb-10">
+      Upload photos, compare changes, and keep a simple history.
+    </p>
+
+    <div className="space-y-4 mb-3">
+      <div className="flex items-start gap-4">
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dbe7ff] text-[#6b8fe8] text-lg font-bold">
+          ✓
+        </div>
+        <div>
+          <p className="text-[1.2rem] font-semibold text-[#25345d]">Easy photo comparison</p>
+          <p className="text-[1rem] leading-7 text-[#5a6785]">Compare mole photos over time in one place.</p>
         </div>
       </div>
+
+      <div className="flex items-start gap-4">
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dbe7ff] text-[#6b8fe8] text-lg font-bold">
+          ✓
+        </div>
+        <div>
+          <p className="text-[1.2rem] font-semibold text-[#25345d]">Clear and simple reports</p>
+          <p className="text-[1rem] leading-7 text-[#5a6785]">Easy-to-read summaries of visible changes.</p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-4">
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dbe7ff] text-[#6b8fe8] text-lg font-bold">
+          ✓
+        </div>
+        <div>
+          <p className="text-[1.2rem] font-semibold text-[#25345d]">Private &amp; secure</p>
+          <p className="text-[1rem] leading-7 text-[#5a6785]">Your account helps keep your photo history protected.</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="flex justify-end -mt-6 mb-2 pr-8">
+  <img
+    src="/log_img.png"
+    alt="Illustration of mole photo comparison on a tablet"
+    className="w-full max-w-[340px] h-auto object-contain"
+    onError={(e) => {
+      ;(e.target as HTMLImageElement).style.display = 'none'
+    }}
+  />
+</div>
+
+   <div className="rounded-2xl border border-[#d7dfef] bg-white px-5 py-3 shadow-sm max-w-[540px] -mt-2">
+  <p className="text-[0.95rem] leading-6 text-[#52607d]">
+    This tool is for monitoring visible changes only. It does not provide medical advice or a medical diagnosis.
+  </p>
+</div>
+  </div>
+</div>
+
       <div className="flex-[0_0_50%] w-1/2 min-w-[280px] p-8 flex flex-col justify-center bg-card border-l border-border box-border">
         {children}
       </div>
@@ -67,30 +116,70 @@ export function Login({
   }
 
   return (
-    <AuthLayout>
-      <div className="w-full max-w-[260px] self-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">Welcome to Mole Monitor</h1>
-          <h3 className="text-lg font-medium text-text-primary mb-6">Log in to Your Account</h3>
+   <AuthLayout>
+  <div className="w-full max-w-[340px] self-center">
+    <div className="text-center">
+      <h1 className="text-[2.1rem] font-semibold tracking-tight text-[#25345d] mb-2">
+        Welcome to Mole Monitor
+      </h1>
+      <h3 className="text-[1.35rem] font-medium text-[#25345d] mb-8">
+        Log in to view your mole history
+      </h3>
+    </div>
+
+    <form className="w-full" onSubmit={handleSubmit}>
+      <Label>Email address</Label>
+      <Input
+        type="email"
+        placeholder="user@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="mb-5"
+        autoComplete="email"
+      />
+
+      <Label>Password</Label>
+      <Input
+        type="password"
+        placeholder="********"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="mb-4"
+        autoComplete="current-password"
+      />
+
+      {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
+
+      <div className="flex flex-col gap-3 mt-4">
+        <Button type="submit">Log in to view your mole history</Button>
+
+        <Button variant="secondary" type="button" onClick={() => navigate('/forgot-password')}>
+          Forgot your password?
+        </Button>
+
+        <div className="border-t border-[#d8deea] pt-3">
+          <Button variant="ghost" type="button" onClick={() => navigate('/register')}>
+            Don&apos;t have an account? Register
+          </Button>
         </div>
-        <form className="w-full" onSubmit={handleSubmit}>
-          <Label>Email address</Label>
-          <Input type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="mb-4" autoComplete="email" />
-          <Label>Password</Label>
-          <Input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} className="mb-4" autoComplete="current-password" />
-          {warn && <p className="text-semantic-warning font-medium mb-2">{warn}</p>}
-          <div className="flex flex-col gap-2 mt-3">
-            <Button type="submit">Log in</Button>
-            <Button variant="secondary" type="button" onClick={() => navigate('/forgot-password')}>
-              Forgot your password?
-            </Button>
-            <Button variant="ghost" type="button" onClick={() => navigate('/register')}>
-              Don&apos;t have an account? Register
-            </Button>
-          </div>
-        </form>
+
+        <div className="mt-2 rounded-xl border border-[#d8deea] bg-[#f4f6fb] px-4 py-3 flex items-center justify-center gap-2">
+          <span className="text-[#64739a]">🔒</span>
+          <p className="m-0 text-sm text-[#4f5d7a] font-medium">
+            Your data is private and secure
+          </p>
+        </div>
+
+        <div className="flex items-start justify-center gap-2 mt-1">
+          <span className="text-[#d9a441] text-sm">⚠</span>
+          <p className="m-0 text-sm text-[#5c6475]">
+            This tool does not provide medical diagnosis.
+          </p>
+        </div>
       </div>
-    </AuthLayout>
+    </form>
+  </div>
+</AuthLayout>
   )
 }
 
