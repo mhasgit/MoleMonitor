@@ -12,8 +12,8 @@ import { AuthContext } from '../contexts/AuthContext'
 
 const SIDEBAR_PAGES = [
   { label: 'Home', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Compare Images', path: '/home', icon: Upload },
-  { label: 'Image History', path: '/history', icon: History },
+  { label: 'Compare Moles', path: '/home', icon: Upload },
+  { label: 'Moles History', path: '/history', icon: History },
   { label: 'Instructions', path: '/instructions', icon: BookOpen },
   { label: 'About', path: '/about', icon: Info },
 ]

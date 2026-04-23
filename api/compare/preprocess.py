@@ -9,6 +9,8 @@ import numpy as np
 
 import config
 
+MAX_PROCESSING_SIDE = int(getattr(config, "COMPARE_MAX_PROCESSING_SIDE", 1200))
+
 
 def _validate_rgb(img: np.ndarray) -> None:
     if img is None or not isinstance(img, np.ndarray):
@@ -45,6 +47,19 @@ def match_sizes(
     a_crop = center_crop(a_resized, h_final)
     b_crop = center_crop(b_resized, h_final)
     return a_crop, b_crop
+
+
+def downscale_if_needed(img: np.ndarray, max_side: int = MAX_PROCESSING_SIDE) -> np.ndarray:
+    """Downscale large images to bounded size for predictable runtime."""
+    _validate_rgb(img)
+    h, w = img.shape[:2]
+    longest = max(h, w)
+    if max_side <= 0 or longest <= max_side:
+        return img.copy()
+    scale = max_side / float(longest)
+    target_w = max(1, int(round(w * scale)))
+    target_h = max(1, int(round(h * scale)))
+    return cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
 
 
 def apply_clahe_lab(img_rgb: np.ndarray) -> np.ndarray:
@@ -100,6 +115,8 @@ def preprocess_pair(
     _validate_rgb(img_a)
     _validate_rgb(img_b)
     a, b = match_sizes(img_a, img_b)
+    a = downscale_if_needed(a)
+    b = downscale_if_needed(b)
     if use_clahe:
         a = apply_clahe_lab(a)
         b = apply_clahe_lab(b)

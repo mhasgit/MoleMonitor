@@ -22,7 +22,7 @@ import {
   Label,
 } from '../components'
 import { FileText, Trash2 } from 'lucide-react'
-import { buildReportMessage } from '../utils/reportMessage'
+import { buildReportSummary, buildSimpleTerms, extractSimpleTermsFromMessage } from '../utils/reportMessage'
 
 /** YYYY-MM-DD from pair created_at → readable label for filter dropdown */
 function formatDateForDisplay(isoDate: string): string {
@@ -62,22 +62,29 @@ function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number;
   let isWarning = false
   let decision: DecisionShape | null = null
   let metrics: Record<string, unknown> = {}
+  let parseWarning: string | null = null
   if (report?.decision_json) {
     try {
       decision = JSON.parse(report.decision_json) as DecisionShape
       isWarning = !!(decision?.action === 'RECOMMEND_REVIEW' || decision?.confidence === 'LOW' || decision?.action === 'MONITOR')
-    } catch { /* ignore */ }
+    } catch {
+      parseWarning = 'Some report fields could not be parsed.'
+    }
   }
   if (report?.metrics_json) {
     try {
       metrics = JSON.parse(report.metrics_json) as Record<string, unknown>
-    } catch { /* ignore */ }
+    } catch {
+      parseWarning = 'Some report fields could not be parsed.'
+    }
   }
-  const triggered = decision?.triggered_rules ?? []
-  const colorExceeded = triggered.includes('color_deltaE')
-  const sizeExceeded = triggered.includes('area_change_percent') || triggered.includes('diameter_increase_mm')
-  const shapeExceeded = triggered.includes('irregularity_delta')
-  const reportMessage = buildReportMessage(decision, metrics)
+  const reportSummary = buildReportSummary(decision)
+  const simpleTerms = extractSimpleTermsFromMessage(report?.message_text) ?? buildSimpleTerms(decision, metrics)
+  const triggeredRules = new Set(decision?.triggered_rules ?? [])
+  const sizeConcern = triggeredRules.has('area_change_percent') || triggeredRules.has('diameter_increase_mm')
+  const colorConcern = triggeredRules.has('color_deltaE')
+  const shapeConcern = triggeredRules.has('irregularity_delta')
+  const diamChangeMm = typeof metrics.diam_change_mm === 'number' ? metrics.diam_change_mm : null
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] p-8" onClick={onClose}>
@@ -108,35 +115,30 @@ function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number;
                 )}
                 <div className="min-w-0 flex-1">
                   <h3 className="text-lg font-semibold text-text-primary m-0 mb-1">Comparison result</h3>
-                  <p
-                    className="whitespace-pre-wrap text-base leading-relaxed m-0 font-medium"
-                    style={{ color: isWarning ? 'var(--semantic-error)' : 'var(--semantic-success)' }}
-                  >
-                    {reportMessage}
+                  <p className="whitespace-pre-wrap text-base leading-relaxed m-0 font-medium text-blue-600">
+                    {reportSummary}
                   </p>
                 </div>
               </div>
             </div>
             <div className="rounded-lg border border-border bg-hover-surface p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3 m-0">Checks</p>
-              <ul className="m-0 p-0 list-none space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-text-primary">Color:</span>
-                  <span className={colorExceeded ? 'text-sm font-medium text-semantic-error' : 'text-sm font-medium text-semantic-success'}>
-                    {colorExceeded ? 'Change detected' : 'OK'}
-                  </span>
+              {parseWarning && (
+                <p className="text-xs text-semantic-warning mb-3 m-0">{parseWarning}</p>
+              )}
+              <ul className="m-0 p-0 list-none space-y-3">
+                <li className={`text-base ${sizeConcern ? 'text-semantic-error' : 'text-semantic-success'}`}>
+                  <span className="font-bold">Size:</span>{' '}
+                  <span className="font-medium">{simpleTerms.size}</span>
+                  {diamChangeMm !== null ? `, ${diamChangeMm >= 0 ? '+' : ''}${diamChangeMm.toFixed(2)} mm` : ''}
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-text-primary">Size:</span>
-                  <span className={sizeExceeded ? 'text-sm font-medium text-semantic-error' : 'text-sm font-medium text-semantic-success'}>
-                    {sizeExceeded ? 'Change detected' : 'OK'}
-                  </span>
+                <li className={`text-base ${colorConcern ? 'text-semantic-error' : 'text-semantic-success'}`}>
+                  <span className="font-bold">Color:</span>{' '}
+                  <span className="font-medium">{simpleTerms.color}</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-text-primary">Shape:</span>
-                  <span className={shapeExceeded ? 'text-sm font-medium text-semantic-error' : 'text-sm font-medium text-semantic-success'}>
-                    {shapeExceeded ? 'Change detected' : 'OK'}
-                  </span>
+                <li className={`text-base ${shapeConcern ? 'text-semantic-error' : 'text-semantic-success'}`}>
+                  <span className="font-bold">Shape:</span>{' '}
+                  <span className="font-medium">{simpleTerms.shape}</span>
                 </li>
               </ul>
             </div>

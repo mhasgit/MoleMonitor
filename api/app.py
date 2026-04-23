@@ -266,20 +266,22 @@ def create_app() -> Flask:
         if img_a is None or img_b is None:
             return jsonify({"error": "Both image_a and image_b are required"}), 400
         try:
-            scale_mm = request.form.get("scale_mm", type=float)
-            if scale_mm is not None and scale_mm <= 0:
-                scale_mm = None
+            px_per_mm = request.form.get("px_per_mm", type=float)
+            if px_per_mm is None:
+                px_per_mm = request.form.get("scale_mm", type=float)
+            if px_per_mm is not None and px_per_mm <= 0:
+                px_per_mm = None
             use_clahe = request.form.get("use_clahe", "").lower() in ("1", "true", "yes")
             blur_kernel = request.form.get("blur_kernel_size", 0, type=int) or 0
             if blur_kernel and blur_kernel % 2 == 0:
                 blur_kernel = max(1, blur_kernel - 1)
         except (TypeError, ValueError):
-            scale_mm, use_clahe, blur_kernel = None, False, 0
+            px_per_mm, use_clahe, blur_kernel = None, False, 0
         try:
             result = run_pipeline(
                 img_a,
                 img_b,
-                scale_mm=scale_mm,
+                scale_mm=px_per_mm,
                 use_clahe=use_clahe,
                 blur_kernel_size=blur_kernel or 0,
             )
