@@ -18,7 +18,7 @@ export function Landing({ authenticated }: { authenticated: boolean }) {
     <div className="relative min-h-screen overflow-hidden bg-surface text-text-primary">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-100"
-        style={{ backgroundImage: 'url("/login.png")' }}
+        style={{ backgroundImage: 'url("/log_img.png")' }}
         aria-hidden
       />
       <div className="absolute inset-0 bg-surface/75" aria-hidden />
