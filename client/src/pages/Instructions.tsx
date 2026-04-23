@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { PageHeader, Card, Button, Layout } from '../components'
 import { ArrowRight, Sun, Focus, Square, Eye, Coins } from 'lucide-react'
+import demoVideo from '../components/mole-demo.mp4' 
 
 const TIPS = [
   { title: 'Good lighting', icon: Sun, body: 'Use natural or bright indoor light. Do not use flash.' },
@@ -24,6 +25,15 @@ export function Instructions() {
         <p className="text-base leading-relaxed text-text-primary">
           Follow these tips to help the system compare your mole images accurately.
         </p>
+
+
+        <div className="w-full rounded-xl overflow-hidden border border-border">
+          <video
+            src={demoVideo}
+            controls
+            className="w-full h-auto"
+          />
+        </div>
 
         <Card className="p-6 sm:p-8">
           <ul className="m-0 p-0 list-none space-y-0">
