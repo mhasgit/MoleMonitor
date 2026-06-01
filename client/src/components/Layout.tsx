@@ -5,6 +5,7 @@ import { HeaderBar } from './HeaderBar'
 import { Button } from './Button'
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  // App shell that combines header, sidebar, and backend status banner.
   const status = useBackendStatus()
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-surface">

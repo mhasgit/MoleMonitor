@@ -10,6 +10,7 @@ export type AuthUser = {
 }
 
 export function getStoredToken(): string | null {
+  // Read JWT from local storage; gracefully handle storage access failures.
   try {
     return localStorage.getItem(TOKEN_KEY)
   } catch {
@@ -18,6 +19,7 @@ export function getStoredToken(): string | null {
 }
 
 export function setStoredToken(token: string | null): void {
+  // Persist or clear JWT used by authenticated API requests.
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token)
     else localStorage.removeItem(TOKEN_KEY)
@@ -27,6 +29,7 @@ export function setStoredToken(token: string | null): void {
 }
 
 export function authHeaders(json = false): HeadersInit {
+  // Build common headers, optionally with JSON content-type and bearer token.
   const h: Record<string, string> = {}
   if (json) h['Content-Type'] = 'application/json'
   const t = getStoredToken()
@@ -35,6 +38,7 @@ export function authHeaders(json = false): HeadersInit {
 }
 
 async function parseError(r: Response): Promise<string> {
+  // Normalize backend error responses to a plain user-facing message.
   const j = await r.json().catch(() => ({}))
   return (j as { error?: string }).error ?? r.statusText
 }
@@ -44,6 +48,7 @@ export async function registerUser(body: {
   email: string
   password: string
 }): Promise<void> {
+  // Create a new account in backend auth service.
   const r = await fetch(`${API}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -53,6 +58,7 @@ export async function registerUser(body: {
 }
 
 export async function loginUser(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
+  // Exchange credentials for a JWT and minimal user profile.
   const r = await fetch(`${API}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -63,12 +69,14 @@ export async function loginUser(email: string, password: string): Promise<{ toke
 }
 
 export async function getMe(): Promise<AuthUser> {
+  // Validate current token and fetch the authenticated user's profile.
   const r = await fetch(`${API}/auth/me`, { headers: authHeaders() })
   if (!r.ok) throw new Error(await parseError(r))
   return r.json()
 }
 
 export async function verifyEmailForReset(email: string): Promise<void> {
+  // Request a password-reset email for the supplied account address.
   const r = await fetch(`${API}/auth/forgot/verify-email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,6 +86,7 @@ export async function verifyEmailForReset(email: string): Promise<void> {
 }
 
 export async function resetPasswordWithToken(resetToken: string, newPassword: string): Promise<void> {
+  // Complete password reset by sending reset token and new password.
   const r = await fetch(`${API}/auth/forgot/reset`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

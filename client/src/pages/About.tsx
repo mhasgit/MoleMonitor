@@ -1,6 +1,7 @@
 import { PageHeader, Card, Layout } from '../components'
 
 export function About() {
+  // Static page summarizing product purpose and medical-safety disclaimer.
   return (
     <Layout>
       <PageHeader title="About MoleMonitor" />

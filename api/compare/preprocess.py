@@ -13,6 +13,7 @@ MAX_PROCESSING_SIDE = int(getattr(config, "COMPARE_MAX_PROCESSING_SIDE", 1200))
 
 
 def _validate_rgb(img: np.ndarray) -> None:
+    """Enforce expected RGB uint8 image shape before preprocessing steps."""
     if img is None or not isinstance(img, np.ndarray):
         raise ValueError("Image must be a numpy array")
     if img.ndim != 3 or img.shape[2] != 3:

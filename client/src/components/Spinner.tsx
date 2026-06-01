@@ -6,6 +6,7 @@ type SpinnerProps = {
 }
 
 export function Spinner({ className = '', size = 24 }: SpinnerProps) {
+  // Small loading indicator used inside buttons and async placeholders.
   return (
     <Loader2
       className={`animate-spin text-accent ${className}`}

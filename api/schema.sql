@@ -5,7 +5,7 @@
 -- Tables
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE users (
     full_name TEXT NOT NULL DEFAULT ''
 );
 
-CREATE TABLE pairs (
+CREATE TABLE IF NOT EXISTS pairs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER REFERENCES users(id),
     pair_name TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE pairs (
     created_at TEXT NOT NULL
 );
 
-CREATE TABLE comparison_reports (
+CREATE TABLE IF NOT EXISTS comparison_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pair_id INTEGER NOT NULL REFERENCES pairs(id),
     created_at TEXT NOT NULL,

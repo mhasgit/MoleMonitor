@@ -12,6 +12,7 @@ const TIPS = [
 ]
 
 export function Landing({ authenticated }: { authenticated: boolean }) {
+  // Public marketing page with onboarding tips and auth-aware CTAs.
   const navigate = useNavigate()
 
   return (

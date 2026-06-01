@@ -5,6 +5,7 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function toYYYYMMDD(d: Date): string {
+  // Normalize calendar day into deterministic key used in date lookups.
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -12,10 +13,12 @@ function toYYYYMMDD(d: Date): string {
 }
 
 function getDaysInMonth(year: number, month: number): number {
+  // Return number of days in given month/year for grid generation.
   return new Date(year, month + 1, 0).getDate()
 }
 
 function getFirstWeekday(year: number, month: number): number {
+  // Return weekday index for first day to compute leading empty cells.
   return new Date(year, month, 1).getDay()
 }
 
@@ -27,6 +30,7 @@ export type ReportDatesCalendarProps = {
 }
 
 export function ReportDatesCalendar({ reportDatesSet, year, month, onYearMonthChange }: ReportDatesCalendarProps) {
+  // Calendar widget that highlights days where reports were saved.
   const daysInMonth = getDaysInMonth(year, month)
   const firstWeekday = getFirstWeekday(year, month)
   const paddingStart = firstWeekday
@@ -45,10 +49,12 @@ export function ReportDatesCalendar({ reportDatesSet, year, month, onYearMonthCh
   }
 
   const goPrev = () => {
+    // Navigate to previous month, wrapping year when crossing January.
     if (month === 0) onYearMonthChange(year - 1, 11)
     else onYearMonthChange(year, month - 1)
   }
   const goNext = () => {
+    // Navigate to next month, wrapping year when crossing December.
     if (month === 11) onYearMonthChange(year + 1, 0)
     else onYearMonthChange(year, month + 1)
   }

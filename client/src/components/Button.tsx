@@ -24,6 +24,7 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
+  // Shared button wrapper that centralizes variant styling and disabled behavior.
   return (
     <button
       type="button"

@@ -5,6 +5,7 @@ type ImageCardProps = {
 }
 
 export function ImageCard({ src, alt, caption }: ImageCardProps) {
+  // Reusable image preview card with optional caption for context.
   return (
     <div className="space-y-1.5">
       <div className="overflow-hidden rounded-card shadow-card bg-card">

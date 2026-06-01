@@ -10,6 +10,7 @@ type PairHistoryCardProps = {
 }
 
 export function PairHistoryCard({ pair, onViewReport, onDelete }: PairHistoryCardProps) {
+  // Compact history row card with thumbnails and report/delete actions.
   const name = pair.pair_name || `Pair ${pair.id}`
   return (
     <Card className="flex flex-row flex-wrap items-center gap-4 p-4">

@@ -15,16 +15,19 @@ export type AuthContextType = {
 export const AuthContext = createContext<AuthContextType | null>(null)
 
 function displayName(user: AuthUser | null): string {
+  // Prefer full name in UI; fall back to email when profile is incomplete.
   if (!user) return 'Demo User'
   const n = (user.full_name || '').trim()
   return n || user.email
 }
 
 export function useAuth() {
+  // Central auth hook that restores session, then exposes login/logout actions.
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
+    // Rehydrate auth from stored token and validate it against `/auth/me`.
     const token = getStoredToken()
     if (!token) {
       setUser(null)
@@ -47,11 +50,13 @@ export function useAuth() {
   }, [])
 
   const login = useCallback((token: string, u: AuthUser) => {
+    // Persist token and user in memory after successful login.
     setStoredToken(token)
     setUser(u)
   }, [])
 
   const logout = useCallback(() => {
+    // Clear local auth state so protected routes redirect immediately.
     setStoredToken(null)
     setUser(null)
   }, [])

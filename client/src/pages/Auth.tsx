@@ -8,6 +8,7 @@ import { loginUser, registerUser, resetPasswordWithToken, verifyEmailForReset } 
 import { isValidEmail, isValidPassword } from '../utils/validation'
 
 export function AuthLayout({ children }: { children: React.ReactNode }) {
+  // Shared split-screen layout reused by login, register, and reset flows.
   const navigate = useNavigate()
 
   return (
@@ -96,6 +97,7 @@ export function Login({
 }: {
   onLogin: (token: string, user: AuthUser) => void
 }) {
+  // Login form controls credential submission and post-register success messaging.
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -103,6 +105,7 @@ export function Login({
   const [warn, setWarn] = useState('')
 
   useEffect(() => {
+    // Show a one-time success toast when redirected from registration.
     const st = location.state as { registered?: boolean } | null
     if (st?.registered) {
       toast.success('Account created. You can log in with your email and password.')
@@ -111,6 +114,7 @@ export function Login({
   }, [location.pathname, location.state, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Validate fields, authenticate user, then route to dashboard on success.
     e.preventDefault()
     const trimmedEmail = email.trim()
     const trimmedPassword = password
@@ -196,6 +200,7 @@ export function Login({
 }
 
 export function Register() {
+  // Registration form validates basic credentials before creating an account.
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -203,6 +208,7 @@ export function Register() {
   const [warn, setWarn] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Enforce client-side input rules before hitting the register endpoint.
     e.preventDefault()
     const name = fullName.trim()
     const em = email.trim()
@@ -265,6 +271,7 @@ export function Register() {
 }
 
 export function ForgotPassword() {
+  // Two-step reset flow: verify email first, then apply reset token password update.
   const navigate = useNavigate()
   const location = useLocation()
   const [step, setStep] = useState<'email' | 'reset'>('email')
@@ -276,6 +283,7 @@ export function ForgotPassword() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
+    // Parse reset status from URL/hash and switch between email/reset steps.
     const raw = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash
     if (raw) {
       const hp = new URLSearchParams(raw)
@@ -306,6 +314,7 @@ export function ForgotPassword() {
   }, [location.search, location.hash])
 
   const handleVerifyEmail = async (e: React.FormEvent) => {
+    // Trigger reset-link email after validating email format.
     e.preventDefault()
     const trimmedEmail = email.trim()
     if (!isValidEmail(trimmedEmail)) {
@@ -322,6 +331,7 @@ export function ForgotPassword() {
   }
 
   const handleResetPassword = async (e: React.FormEvent) => {
+    // Validate new password fields and submit token-based reset request.
     e.preventDefault()
     if (!resetToken) {
       setWarn('Session expired. Start again.')

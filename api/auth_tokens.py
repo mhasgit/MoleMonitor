@@ -13,6 +13,7 @@ TOKEN_TYPE_RESET = "reset"
 
 
 def encode_access_token(user_id: int) -> str:
+    """Issue a short-lived access JWT containing the user subject id."""
     now = int(time.time())
     # PyJWT 2.x requires "sub" to be a string (RFC 7519 string subject).
     return jwt.encode(
@@ -27,6 +28,7 @@ def encode_access_token(user_id: int) -> str:
 
 
 def encode_reset_token(user_id: int) -> str:
+    """Issue a time-limited password-reset JWT for a specific user."""
     now = int(time.time())
     return jwt.encode(
         {
@@ -40,6 +42,7 @@ def encode_reset_token(user_id: int) -> str:
 
 
 def decode_token(token: str, expected_type: str) -> int | None:
+    """Decode and type-check a JWT, returning the user id when valid."""
     try:
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
         if payload.get("typ") != expected_type:

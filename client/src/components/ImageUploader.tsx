@@ -21,15 +21,18 @@ export function ImageUploader({
   accept = '.jpg,.jpeg,.png,.webp,.bmp',
   disabled = false,
 }: ImageUploaderProps) {
+  // Handles file picking, drag-drop interactions, and preview/clear actions.
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Accept first file selected from native picker.
     const f = e.target.files?.[0]
     if (f) onFileChange(f)
   }
 
   const handleDrop = (e: React.DragEvent) => {
+    // Accept dragged image files while respecting disabled state.
     e.preventDefault()
     setIsDragOver(false)
     if (disabled) return
@@ -38,6 +41,7 @@ export function ImageUploader({
   }
 
   const handleDragOver = (e: React.DragEvent) => {
+    // Enable drop zone visual state during valid drag-over events.
     e.preventDefault()
     if (disabled) return
     e.dataTransfer.dropEffect = 'copy'
@@ -45,10 +49,12 @@ export function ImageUploader({
   }
 
   const handleDragLeave = () => {
+    // Reset drop zone highlight after leaving the target area.
     setIsDragOver(false)
   }
 
   const handleClear = () => {
+    // Remove selected file and reset hidden file input value.
     onFileChange(null)
     if (inputRef.current) inputRef.current.value = ''
   }

@@ -5,6 +5,7 @@ import { Card, Layout, ReportDatesCalendar } from '../components'
 import { AlertTriangle } from 'lucide-react'
 
 function toYYYYMMDD(d: Date): string {
+  // Normalize Date to calendar-key format used by report date highlights.
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -12,6 +13,7 @@ function toYYYYMMDD(d: Date): string {
 }
 
 function reportIndicatesChange(decisionJson: string): boolean {
+  // Treat monitor/review decisions as user-visible "change detected" outcomes.
   try {
     const d = JSON.parse(decisionJson) as { action?: string }
     return d.action === 'MONITOR' || d.action === 'RECOMMEND_REVIEW'
@@ -21,15 +23,18 @@ function reportIndicatesChange(decisionJson: string): boolean {
 }
 
 export function Dashboard({ userName: _userName, history, setHistory }: { userName: string; history: Pair[]; setHistory: React.Dispatch<React.SetStateAction<Pair[]>> }) {
+  // Dashboard aggregates high-level stats from saved pairs and reports.
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear())
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth())
   const [pairsWithChanges, setPairsWithChanges] = useState(0)
 
   useEffect(() => {
+    // Keep dashboard history synchronized with latest backend pair list.
     getPairs().then(setHistory).catch(() => setHistory([]))
   }, [setHistory])
 
   useEffect(() => {
+    // Count how many pairs have at least one report that flagged a change.
     if (history.length === 0) {
       setPairsWithChanges(0)
       return
@@ -53,6 +58,7 @@ export function Dashboard({ userName: _userName, history, setHistory }: { userNa
   }, [history])
 
   const reportDatesSet = useMemo(() => {
+    // Build a set of report days for fast calendar cell highlighting.
     const set = new Set<string>()
     for (const e of history) {
       const s = e.created_at.replace(/Z$/i, '')

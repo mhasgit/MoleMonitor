@@ -79,6 +79,7 @@ def build_snapshot(
 
 
 def snapshot_to_dict(s: ReportSnapshot) -> dict[str, Any]:
+    """Convert a report snapshot dataclass into API/storage dictionary form."""
     return {
         "created_at": s.created_at,
         "algo_version": s.algo_version,
@@ -92,6 +93,7 @@ def snapshot_to_dict(s: ReportSnapshot) -> dict[str, Any]:
 
 
 def dict_to_snapshot(d: dict[str, Any]) -> ReportSnapshot:
+    """Hydrate a ReportSnapshot from a dictionary loaded from storage/API."""
     return ReportSnapshot(
         created_at=d["created_at"],
         algo_version=d["algo_version"],

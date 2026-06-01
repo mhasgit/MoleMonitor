@@ -24,11 +24,13 @@ from viz import overlays as viz_overlays
 
 
 def create_app() -> Flask:
+    """Create and configure the Flask application with all API routes."""
     app = Flask(__name__)
     CORS(app, origins=os.environ.get("CORS_ORIGINS", "*").split(","))
     database.init_db()
 
     def _get_auth_user_id() -> int | None:
+        """Extract and validate the bearer access token from the current request."""
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             return None
@@ -38,6 +40,7 @@ def create_app() -> Flask:
         return auth_tokens.decode_token(token, auth_tokens.TOKEN_TYPE_ACCESS)
 
     def _pair_public_dict(p: dict) -> dict:
+        """Return a safe pair payload shape for API responses."""
         return {
             "id": p["id"],
             "pair_name": p["pair_name"],
@@ -49,6 +52,7 @@ def create_app() -> Flask:
         }
 
     def _decode_image(field: str):
+        """Read an uploaded image field and decode it into an RGB numpy array."""
         f = request.files.get(field)
         if not f:
             return None
@@ -56,6 +60,7 @@ def create_app() -> Flask:
         return images.load_image_from_bytes(data)
 
     def _encode_image(arr) -> str | None:
+        """Encode an image array as base64 PNG for JSON transport."""
         if arr is None:
             return None
         from PIL import Image
@@ -64,6 +69,7 @@ def create_app() -> Flask:
         return base64.b64encode(buf.getvalue()).decode("utf-8")
 
     def _build_reset_redirect_url(reset_token: str) -> str:
+        """Attach the reset token to the configured reset redirect URL."""
         base = config.PASSWORD_RESET_REDIRECT_URL
         parts = urlsplit(base)
         q = dict(parse_qsl(parts.query, keep_blank_values=True))
@@ -72,10 +78,12 @@ def create_app() -> Flask:
 
     @app.route("/api/health")
     def health():
+        """Lightweight health check endpoint for uptime monitoring."""
         return jsonify({"status": "ok"})
 
     @app.route("/api/auth/register", methods=["POST"])
     def auth_register():
+        """Register a user locally, then best-effort sync to Supabase Auth."""
         data = request.get_json() or {}
         full_name = (data.get("full_name") or "").strip()
         email = (data.get("email") or "").strip()
@@ -107,6 +115,7 @@ def create_app() -> Flask:
 
     @app.route("/api/auth/login", methods=["POST"])
     def auth_login():
+        """Authenticate user credentials and return an access token payload."""
         data = request.get_json() or {}
         email = (data.get("email") or "").strip().lower()
         password = data.get("password") or ""
@@ -130,6 +139,7 @@ def create_app() -> Flask:
 
     @app.route("/api/auth/me", methods=["GET"])
     def auth_me():
+        """Return the authenticated user's profile from the access token context."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -146,6 +156,7 @@ def create_app() -> Flask:
 
     @app.route("/api/auth/forgot/verify-email", methods=["POST"])
     def auth_forgot_verify_email():
+        """Issue password reset flow with neutral responses to prevent email enumeration."""
         data = request.get_json() or {}
         email = (data.get("email") or "").strip().lower()
         if not auth_validation.is_valid_email(email):
@@ -177,6 +188,7 @@ def create_app() -> Flask:
 
     @app.route("/api/auth/forgot/reset", methods=["POST"])
     def auth_forgot_reset():
+        """Validate a reset token and update the user's password hash."""
         data = request.get_json() or {}
         reset_token = (data.get("reset_token") or "").strip()
         new_password = data.get("new_password") or ""
@@ -194,6 +206,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs", methods=["GET"])
     def list_pairs():
+        """List all image pairs owned by the authenticated user."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -203,6 +216,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs", methods=["POST"])
     def create_pair():
+        """Store a new pair of uploaded images and persist pair metadata."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -232,6 +246,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs/<int:pair_id>", methods=["GET"])
     def get_pair(pair_id):
+        """Fetch one pair by id after verifying user ownership."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -242,6 +257,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs/<int:pair_id>", methods=["DELETE"])
     def delete_pair(pair_id):
+        """Delete one user-owned pair and its related report rows."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -251,6 +267,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs", methods=["DELETE"])
     def clear_pairs():
+        """Delete all pairs for the authenticated user in one operation."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -259,6 +276,7 @@ def create_app() -> Flask:
 
     @app.route("/api/compare", methods=["POST"])
     def compare():
+        """Run the compare pipeline and return metrics, decisions, and visual previews."""
         if _get_auth_user_id() is None:
             return jsonify({"error": "Unauthorized"}), 401
         img_a = _decode_image("image_a")
@@ -293,6 +311,7 @@ def create_app() -> Flask:
         out = snapshot_to_dict(snap)
         # Ensure metrics are JSON-serializable (no numpy)
         def sanitize(obj):
+            """Convert numpy scalar types into plain Python JSON-safe values."""
             if isinstance(obj, dict):
                 return {k: sanitize(v) for k, v in obj.items()}
             if isinstance(obj, list):
@@ -312,6 +331,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs/<int:pair_id>/reports", methods=["GET"])
     def list_reports(pair_id):
+        """List stored comparison reports for a user-owned pair."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -322,6 +342,7 @@ def create_app() -> Flask:
 
     @app.route("/api/pairs/<int:pair_id>/reports", methods=["POST"])
     def create_report(pair_id):
+        """Persist a new report snapshot linked to a user-owned pair."""
         uid = _get_auth_user_id()
         if uid is None:
             return jsonify({"error": "Unauthorized"}), 401
@@ -347,6 +368,7 @@ def create_app() -> Flask:
     # Serve uploaded images (optional); basename-only to avoid path traversal
     @app.route("/uploads/<path:filename>")
     def serve_upload(filename):
+        """Serve a stored upload file by basename to avoid path traversal."""
         from pathlib import Path
         root = Path(__file__).resolve().parent
         uploads = root / config.UPLOADS_DIR

@@ -19,6 +19,7 @@ import {
 } from './pages'
 
 function ToasterWithTheme() {
+  // Keep toast colors synchronized with the active light/dark theme.
   const { theme } = useTheme()
   return (
     <Toaster
@@ -37,12 +38,14 @@ function ToasterWithTheme() {
 }
 
 export default function App() {
+  // Own global auth-aware app state shared across dashboard/history routes.
   const auth = useAuth()
   const [history, setHistory] = useState<Pair[]>([])
   const [reportModal, setReportModal] = useState<{ pairId: number; pairName: string; timestamp: string } | null>(null)
   const [backendError, setBackendError] = useState(false)
 
   const retryBackend = useCallback(async () => {
+    // Retry backend reachability and refresh pair history after transient errors.
     try {
       const list = await getPairs()
       setHistory(list)
@@ -58,6 +61,7 @@ export default function App() {
   }, [auth.logout])
 
   useEffect(() => {
+    // Load pair history once auth state is known, and clear it after logout.
     if (auth.authenticated && auth.authReady) {
       getPairs()
         .then((list) => {

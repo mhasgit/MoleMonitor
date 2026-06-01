@@ -13,6 +13,7 @@ const TIPS = [
 ]
 
 export function Instructions() {
+  // Step-by-step guidance page for taking consistent comparison photos.
   const navigate = useNavigate()
 
   return (

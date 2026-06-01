@@ -12,6 +12,7 @@ type ThemeContextType = {
 export const ThemeContext = createContext<ThemeContextType | null>(null)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  // Initialize theme from storage so user preference survives reloads.
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const stored = localStorage.getItem(THEME_KEY) as Theme | null
@@ -21,6 +22,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
+    // Mirror current theme to the document root for Tailwind dark classes.
     const root = document.documentElement
     if (theme === 'dark') {
       root.classList.add('dark')
@@ -30,6 +32,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme])
 
   const toggleTheme = useCallback(() => {
+    // Flip theme and persist the selected value for future sessions.
     setTheme((prev) => {
       const next = prev === 'light' ? 'dark' : 'light'
       try {
@@ -47,6 +50,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useTheme() {
+  // Guard against usage outside provider to avoid silent null context errors.
   const ctx = useContext(ThemeContext)
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider')
   return ctx

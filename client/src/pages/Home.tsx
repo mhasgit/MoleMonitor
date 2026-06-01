@@ -27,6 +27,7 @@ import {
 import { buildReportSummary, buildSimpleTerms, extractSimpleTermsFromMessage } from '../utils/reportMessage'
 
 export function Home() {
+  // Main compare workspace: upload/select images, run compare, and save outputs.
   const auth = useContext(AuthContext)
   const setBackendError = useBackendStatus()?.setBackendError
   const [history, setHistory] = useState<Pair[]>([])
@@ -43,6 +44,7 @@ export function Home() {
   const [showFromUploads, setShowFromUploads] = useState(false)
 
   const loadHistory = useCallback(async () => {
+    // Load saved image pairs and reflect backend availability in global status.
     try {
       const list = await getPairs()
       setHistory(list)
@@ -59,10 +61,12 @@ export function Home() {
   }, [setBackendError, auth?.logout])
 
   useEffect(() => {
+    // Fetch history on mount so upload-from-history options are populated.
     loadHistory()
   }, [loadHistory])
 
   const setFileAWithPreview = useCallback((f: File | null) => {
+    // Manage old-image preview URL lifecycle to avoid object URL leaks.
     setPreviewA((prev) => {
       if (prev) URL.revokeObjectURL(prev)
       return f ? URL.createObjectURL(f) : null
@@ -71,6 +75,7 @@ export function Home() {
     setFromHistoryA(null)
   }, [])
   const setFileBWithPreview = useCallback((f: File | null) => {
+    // Manage new-image preview URL lifecycle to avoid object URL leaks.
     setPreviewB((prev) => {
       if (prev) URL.revokeObjectURL(prev)
       return f ? URL.createObjectURL(f) : null
@@ -82,6 +87,7 @@ export function Home() {
   const bothOk = (fileA !== null || fromHistoryA !== null) && (fileB !== null || fromHistoryB !== null)
 
   const handleCompare = async () => {
+    // Resolve both images (uploads or history), then run backend comparison.
     if (!bothOk) return
     setError(null)
     setLoading(true)
@@ -126,6 +132,7 @@ export function Home() {
   }
 
   const handleSavePair = async () => {
+    // Persist the current uploaded image pair into long-term history.
     if (!bothOk || !fileA || !fileB) {
       const msg = 'Save pair to history requires both images to be uploaded (not only from history).'
       setError(msg)
@@ -148,6 +155,7 @@ export function Home() {
   }
 
   const handleSaveReport = async () => {
+    // Save compare output under an existing or newly created pair record.
     if (!compareResult) return
     setError(null)
     setLoading(true)

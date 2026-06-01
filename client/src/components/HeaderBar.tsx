@@ -4,12 +4,14 @@ import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 
 export function HeaderBar() {
+  // Top navigation bar with user quick info and theme toggle controls.
   const { theme, toggleTheme } = useTheme()
   const auth = useContext(AuthContext)
   const [showUserCard, setShowUserCard] = useState(false)
   const userCardRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    // Close user popover when clicking anywhere outside its bounds.
     const onDocMouseDown = (event: MouseEvent) => {
       if (!userCardRef.current) return
       if (event.target instanceof Node && !userCardRef.current.contains(event.target)) {

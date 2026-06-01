@@ -13,6 +13,7 @@ def _project_root() -> Path:
 
 
 def _db_path() -> Path:
+    """Return the configured SQLite database file path."""
     return _project_root() / config.DB_PATH
 
 
@@ -285,6 +286,7 @@ def insert_user(
 
 
 def get_user_by_email(email: str) -> dict[str, Any] | None:
+    """Fetch a user record by normalized email, or None when missing."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
@@ -299,6 +301,7 @@ def get_user_by_email(email: str) -> dict[str, Any] | None:
 
 
 def get_user_by_id(user_id: int) -> dict[str, Any] | None:
+    """Fetch the public user profile fields for a specific user id."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:
@@ -313,6 +316,7 @@ def get_user_by_id(user_id: int) -> dict[str, Any] | None:
 
 
 def update_user_password(user_id: int, password_hash: str) -> None:
+    """Update both password hash columns for a user after reset/change."""
     init_db()
     conn = sqlite3.connect(str(_db_path()))
     try:

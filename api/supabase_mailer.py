@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 def _is_configured() -> bool:
+    """Return whether required Supabase URL and service role key are present."""
     return bool(config.SUPABASE_URL and config.SUPABASE_SERVICE_ROLE_KEY)
 
 
 def _request_json(path: str, payload: dict, *, allow_statuses: tuple[int, ...] = ()) -> dict:
+    """POST JSON to Supabase Auth endpoints and normalize accepted error statuses."""
     url = f"{config.SUPABASE_URL.rstrip('/')}{path}"
     body = json.dumps(payload).encode("utf-8")
     req = request.Request(

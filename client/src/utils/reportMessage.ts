@@ -10,6 +10,7 @@ type Decision = {
 }
 
 export function buildReportSummary(decision: Decision | null | undefined): string {
+  // Prefer backend-computed summary text and provide a safe fallback.
   return (decision?.summary_reason ?? 'No summary available.').trim()
 }
 
@@ -17,6 +18,7 @@ export function buildSimpleTerms(
   decision: Decision | null | undefined,
   metrics: Record<string, unknown> | null | undefined
 ): { size: string; color: string; shape: string } {
+  // Translate raw metrics/rules into plain language for non-technical users.
   const triggered = new Set((decision?.triggered_rules ?? []) as string[])
 
   const sizeTriggered = triggered.has('area_change_percent') || triggered.has('diameter_increase_mm')
@@ -56,6 +58,7 @@ export function buildReportMessage(
   decision: Decision | null | undefined,
   metrics: Record<string, unknown> | null | undefined
 ): string {
+  // Build complete report text block including simple terms and disclaimer.
   const summary = buildReportSummary(decision)
   const simpleTerms = buildSimpleTerms(decision, metrics)
   const parts: string[] = [summary, '', 'In simple terms:']
@@ -71,6 +74,7 @@ export function buildReportMessage(
 export function extractSimpleTermsFromMessage(
   messageText: string | null | undefined
 ): { size: string; color: string; shape: string } | null {
+  // Parse preformatted bullet lines from a saved message when available.
   if (!messageText) return null
   const lines = messageText
     .split('\n')

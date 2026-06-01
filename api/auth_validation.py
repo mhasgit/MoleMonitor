@@ -13,6 +13,7 @@ def normalize_phone(phone: str) -> str:
 
 
 def is_valid_email(email: str) -> bool:
+    """Validate email format using the shared backend/frontend regex rules."""
     return bool(email and EMAIL_PATTERN.match(email.strip()))
 
 

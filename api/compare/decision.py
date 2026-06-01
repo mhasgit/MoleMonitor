@@ -36,6 +36,7 @@ def _compute_confidence(
     seg_quality_b: dict[str, Any],
     scale_available: bool,
 ) -> Confidence:
+    """Derive confidence level from image quality and segmentation reliability signals."""
     issues = 0
     if quality_a.get("low_sharpness") or quality_b.get("low_sharpness"):
         issues += 1
@@ -129,6 +130,7 @@ def decide(
 
 
 def decision_to_dict(d: Decision) -> dict[str, Any]:
+    """Serialize a Decision object into a JSON-friendly dictionary."""
     return {
         "action": d.action.value,
         "confidence": d.confidence.value,
@@ -138,6 +140,7 @@ def decision_to_dict(d: Decision) -> dict[str, Any]:
 
 
 def dict_to_decision(data: dict[str, Any]) -> Decision:
+    """Rebuild a Decision object from persisted JSON dictionary fields."""
     return Decision(
         action=Action(data.get("action", "NONE")),
         confidence=Confidence(data.get("confidence", "MEDIUM")),

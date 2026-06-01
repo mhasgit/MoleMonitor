@@ -16,6 +16,7 @@ export class ApiError extends Error {
 }
 
 async function jsonErrorBody(r: Response): Promise<never> {
+  // Parse backend JSON error shape and rethrow as typed ApiError.
   let msg = r.statusText
   const t = await r.text()
   try {
@@ -28,6 +29,7 @@ async function jsonErrorBody(r: Response): Promise<never> {
 }
 
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  // Attach auth token when available while preserving caller-provided headers.
   const headers = new Headers(init?.headers)
   const base = authHeaders(false) as Record<string, string>
   if (base.Authorization) headers.set('Authorization', base.Authorization)
@@ -71,12 +73,14 @@ export type CompareResult = {
 }
 
 export async function getPairs(): Promise<Pair[]> {
+  // Fetch all pairs for the currently authenticated user.
   const r = await apiFetch(`${API}/pairs`)
   if (!r.ok) return jsonErrorBody(r)
   return r.json()
 }
 
 export async function getPair(id: number): Promise<Pair | null> {
+  // Fetch one pair, returning null instead of throwing for 404 misses.
   const r = await apiFetch(`${API}/pairs/${id}`)
   if (r.status === 404) return null
   if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
@@ -90,6 +94,7 @@ export async function createPair(
   filenameA?: string,
   filenameB?: string
 ): Promise<{ id: number; pair_name: string }> {
+  // Upload two images as multipart form data and create a pair record.
   const form = new FormData()
   form.append('image_a', imageA)
   form.append('image_b', imageB)
@@ -105,11 +110,13 @@ export async function createPair(
 }
 
 export async function deletePair(id: number): Promise<void> {
+  // Remove a single pair by id for the current user.
   const r = await apiFetch(`${API}/pairs/${id}`, { method: 'DELETE' })
   if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
 }
 
 export async function clearPairs(): Promise<void> {
+  // Remove all pairs for the current authenticated user.
   const r = await apiFetch(`${API}/pairs`, { method: 'DELETE' })
   if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
 }
@@ -119,6 +126,7 @@ export async function compare(
   imageB: File | Blob,
   options: { scaleMm?: number; useClahe?: boolean; blurKernelSize?: number } = {}
 ): Promise<CompareResult> {
+  // Submit two images to backend compare endpoint and return computed report data.
   const form = new FormData()
   const fileA = imageA instanceof File ? imageA : new File([imageA], 'image_a.jpg', { type: 'image/jpeg' })
   const fileB = imageB instanceof File ? imageB : new File([imageB], 'image_b.jpg', { type: 'image/jpeg' })
@@ -137,6 +145,7 @@ export async function compare(
 
 /** Basename of stored path for /uploads/ URL */
 function uploadsPath(path: string): string {
+  // Keep only basename so UI URLs match backend safe upload serving.
   return path.replace(/^.*[/\\]/, '')
 }
 
@@ -158,6 +167,7 @@ export async function compareFromPair(
 }
 
 export async function getReports(pairId: number): Promise<Report[]> {
+  // Fetch all saved reports associated with a pair id.
   const r = await apiFetch(`${API}/pairs/${pairId}/reports`)
   if (!r.ok) throw new Error(await r.text().catch(() => r.statusText))
   return r.json()
@@ -176,6 +186,7 @@ export async function saveReport(
     mask_b_path?: string | null
   }
 ): Promise<{ id: number }> {
+  // Persist a generated comparison snapshot under an existing pair.
   const r = await apiFetch(`${API}/pairs/${pairId}/reports`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

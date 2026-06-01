@@ -19,11 +19,13 @@ const SIDEBAR_PAGES = [
 ]
 
 export function Sidebar() {
+  // Primary app navigation rail with route links and logout action.
   const location = useLocation()
   const navigate = useNavigate()
   const auth = useContext(AuthContext)
 
   const handleLogout = () => {
+    // Clear auth state and redirect to login after sign-out.
     auth?.logout()
     navigate('/login')
   }

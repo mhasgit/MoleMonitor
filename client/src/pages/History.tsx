@@ -43,10 +43,12 @@ type DecisionShape = {
 }
 
 function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number; pairName: string; timestamp: string; onClose: () => void }) {
+  // Modal fetches and presents the newest saved report for the selected pair.
   const [reports, setReports] = useState<Report[] | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Load reports once per selected pair id, with cancellation guard on unmount.
     let cancelled = false
     getReports(pairId)
       .then((list) => { if (!cancelled) setReports(list) })
@@ -155,6 +157,7 @@ function ReportModal({ pairId, pairName, timestamp, onClose }: { pairId: number;
 }
 
 function DeleteConfirmModal({ pair, onConfirm, onCancel }: { pair: Pair; onConfirm: () => void; onCancel: () => void }) {
+  // Confirmation dialog prevents accidental pair/report deletion.
   const name = pair.pair_name || `Pair ${pair.id}`
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000] p-8" onClick={onCancel}>
@@ -180,9 +183,11 @@ function HistoryPage(
     setReportModal: React.Dispatch<React.SetStateAction<{ pairId: number; pairName: string; timestamp: string } | null>>
   }
 ) {
+  // History page lists saved pairs, supports filters, report view, and deletion.
   const auth = useContext(AuthContext)
   const setBackendError = useBackendStatus()?.setBackendError
   const loadHistory = useCallback(async () => {
+    // Refresh pair list and propagate backend/auth failures consistently.
     try {
       const list = await getPairs()
       setHistory(list)
@@ -199,6 +204,7 @@ function HistoryPage(
   }, [setHistory, setBackendError, auth?.logout])
 
   useEffect(() => {
+    // Initial history load for table and filter options.
     loadHistory()
   }, [loadHistory])
 
@@ -218,10 +224,12 @@ function HistoryPage(
   })
 
   const handleDeleteClick = useCallback((pair: Pair) => {
+    // Store target pair and open delete confirmation modal.
     setPairToDelete(pair)
   }, [])
 
   const handleDeleteConfirm = useCallback(async () => {
+    // Delete the selected pair, then reload history and show result toast.
     if (!pairToDelete) return
     const name = pairToDelete.pair_name || `Pair ${pairToDelete.id}`
     try {
@@ -371,6 +379,7 @@ export function HistoryPageWithModal(
     setReportModal: React.Dispatch<React.SetStateAction<{ pairId: number; pairName: string; timestamp: string } | null>>
   }
 ) {
+  // Wrapper keeps route-level report modal state alongside the base page.
   return (
     <>
       {reportModal && (

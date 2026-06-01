@@ -10,6 +10,7 @@ import numpy as np
 
 
 def _validate_mask(mask: np.ndarray, img: np.ndarray) -> None:
+    """Ensure segmentation mask dimensions align with the source image."""
     if mask is None or mask.ndim != 2 or img is None or img.shape[:2] != mask.shape[:2]:
         raise ValueError("Mask must be 2D and match image shape")
 

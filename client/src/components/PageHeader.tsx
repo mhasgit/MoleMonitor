@@ -4,6 +4,7 @@ type PageHeaderProps = {
 }
 
 export function PageHeader({ title, subtitle }: PageHeaderProps) {
+  // Standardized page title block with optional descriptive subtitle.
   return (
     <header className="mb-6">
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary mb-1">

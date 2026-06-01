@@ -13,10 +13,12 @@ type CustomSelectProps = {
 }
 
 export function CustomSelect({ value, onChange, options, placeholder = '— Select —', className = '', triggerClassName = '' }: CustomSelectProps) {
+  // Lightweight custom dropdown used for consistent app-wide select styling.
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Close the dropdown when user clicks outside its container.
     const handleClickOutside = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
